@@ -164,6 +164,14 @@ The one thing the firmware can't know on its own is the *exact* value of that in
 
 ---
 
+## Cross-checking on a Retro Chip Tester
+
+КР556РТ4 is the Soviet equivalent of the **82S129 / N82S129** (256×4 bipolar PROM), so on a [Retro Chip Tester](https://www.8bit-museum.de/) pick that model to read/identify it.
+
+The RCT computes a **CRC-32**, and it matches the **`file (4-bit)`** CRC-32 this app shows in the HEX panel (confirmed on hardware). So to verify a dump against the RCT, compare the RCT's checksum with the **`file (4-bit)`** value — not the `raw file` one (RT4 stores only the low 4 bits per cell, so the raw 8-bit CRC won't match the tester).
+
+---
+
 ## Safety notes
 
 КР556РТ4 is one-time programmable. Read these once:
