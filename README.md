@@ -17,7 +17,7 @@ This is a continuation of the open **Diduino** project. The hardware is unchange
 **▶ Open the programmer:** <https://alex-electron.github.io/Diduino_Nichrome/diduino_nichrome.html> — runs in Chrome or Edge, nothing to install. (GitHub Pages serves it over HTTPS, which is what Web Serial needs.)
 
 <p align="center">
-  ▶▶▶&nbsp;&nbsp;<a href="https://alex-electron.github.io/Diduino_Nichrome/diduino_nichrome.html"><img src="img/launch.png" alt="Launch the Diduino Nichrome programmer" height="48"></a>&nbsp;&nbsp;◀◀◀
+  <a href="https://alex-electron.github.io/Diduino_Nichrome/diduino_nichrome.html"><img src="img/launch.png" alt="Launch the Diduino Nichrome programmer" height="54"></a>
 </p>
 
 ---
