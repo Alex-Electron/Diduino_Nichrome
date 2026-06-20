@@ -107,7 +107,7 @@
     <div class="row">
       <button id="btnVolt" disabled>[ READ V ]</button>
       <button id="btnCal" disabled>[ CAL V ]</button>
-      <button id="btnSet" disabled data-i18n="b_send">[ ОТПРАВИТЬ НАСТРОЙКИ ]</button>
+      <button id="btnSet" disabled data-i18n="b_send">[ SEND SETTINGS ]</button>
     </div>
     <div class="hint" data-i18n="hint_chip">Напряжение = уровень p0–p7. По умолчанию для РТ4: 1000 имп. / 40 мкс / 10%. BURN берёт эти значения.</div>
   </div>
@@ -1869,7 +1869,7 @@
 const $=id=>document.getElementById(id);
 let lang='ru';
 const I18N={
- ru:{sub:'Web Serial · прошивка: Diduino_Nichrome.ino · КР556РТ4 (256×4)',h_conn:'Соединение',h_chip:'Чип · напряжение · параметры прожига',h_ops:'Операции',h_log:'Лог',l_chip:'микросхема',l_level:'уровень p0–p7',l_imp:'Кол-во импульсов',l_len:'Время имп., мкс',l_duty:'Заполнение %',l_soak:'Soak имп.',hiF_lbl:'старший нибл = F',b_send:'[ ОТПРАВИТЬ НАСТРОЙКИ ]',b_flash:'[ ⟳ FLASH NANO ]',hint_conn:'Chrome/Edge, открыть локально (file://). Закрой Arduino IDE / DidUino перед CONNECT.',hint_chip:'Напряжение = уровень p0–p7. По умолчанию для РТ4: 1000 имп. / 40 мкс / 10%. BURN берёт эти значения.',hint_ops:'BURN: уровень Vpp p1, загрузи .bin, чип должен быть ЧИСТЫЙ.'},
+ ru:{sub:'Web Serial · прошивка: Diduino_Nichrome.ino · КР556РТ4 (256×4)',h_conn:'Соединение',h_chip:'Чип · напряжение · параметры прожига',h_ops:'Операции',h_log:'Лог',l_chip:'микросхема',l_level:'уровень p0–p7',l_imp:'Кол-во импульсов',l_len:'Время имп., мкс',l_duty:'Заполнение %',l_soak:'Soak имп.',hiF_lbl:'старший нибл = F',b_send:'[ SEND SETTINGS ]',b_flash:'[ ⟳ FLASH NANO ]',hint_conn:'Chrome/Edge, открыть локально (file://). Закрой Arduino IDE / DidUino перед CONNECT.',hint_chip:'Напряжение = уровень p0–p7. По умолчанию для РТ4: 1000 имп. / 40 мкс / 10%. BURN берёт эти значения.',hint_ops:'BURN: уровень Vpp p1, загрузи .bin, чип должен быть ЧИСТЫЙ.'},
  en:{sub:'Web Serial · firmware: Diduino_Nichrome.ino · КР556РТ4 (256×4)',h_conn:'Connection',h_chip:'Chip · voltage · burn parameters',h_ops:'Operations',h_log:'Log',l_chip:'chip',l_level:'level p0–p7',l_imp:'Pulses',l_len:'Pulse time, µs',l_duty:'Duty %',l_soak:'Soak pulses',hiF_lbl:'high nibble = F',b_send:'[ SEND SETTINGS ]',b_flash:'[ ⟳ FLASH NANO ]',hint_conn:'Chrome/Edge, open locally (file://). Close Arduino IDE / DidUino before CONNECT.',hint_chip:'Voltage = level p0–p7. RT4 defaults: 1000 pulses / 40 µs / 10%. BURN uses these values.',hint_ops:'BURN: Vpp level p1, load .bin, chip must be BLANK.'}
 };
 function setLang(l){lang=l;document.querySelectorAll('[data-i18n]').forEach(e=>{const k=e.getAttribute('data-i18n');if(I18N[l][k]!==undefined)e.textContent=I18N[l][k];});$('lang').textContent=l==='ru'?'EN':'RU';document.documentElement.lang=l;setFileName();if(verifyActive)showVerify();else renderHex(hexShown,hexMark);}
