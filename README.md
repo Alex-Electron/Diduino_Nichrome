@@ -6,9 +6,16 @@ Firmware and a browser-based programmer for the Soviet bipolar fuse-PROM **КР5
 
 This is a continuation of the open **Diduino** project. The hardware is unchanged; what is new here is a rewritten host application that runs in the browser and a burn routine built to not destroy a chip when something goes slightly wrong.
 
-<img src="img/board.png" alt="Diduino board" width="420">
-
-<sub>The Diduino board — original hardware by Naumenko (naym1993), see credits below.</sub>
+<table>
+<tr>
+  <td valign="top"><img src="img/app.png" alt="Diduino Nichrome web app" width="460"></td>
+  <td valign="top"><img src="img/board.png" alt="Diduino board" width="300"></td>
+</tr>
+<tr>
+  <td align="center"><sub>the browser programmer (this project)</sub></td>
+  <td align="center"><sub>the Diduino board — original hardware by Naumenko (naym1993)</sub></td>
+</tr>
+</table>
 
 ![license](https://img.shields.io/badge/license-BSD--2--Clause-blue)
 ![platform](https://img.shields.io/badge/board-Arduino%20Nano-00979D?logo=arduino&logoColor=white)
