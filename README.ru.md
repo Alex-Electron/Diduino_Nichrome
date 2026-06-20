@@ -12,7 +12,7 @@
 ![platform](https://img.shields.io/badge/board-Arduino%20Nano-00979D?logo=arduino&logoColor=white)
 ![chip](https://img.shields.io/badge/chip-KR556RT4%20256x4-success)
 ![ui](https://img.shields.io/badge/host-Web%20Serial-1aff80)
-![fw](https://img.shields.io/badge/firmware-v0.5.1-orange)
+![fw](https://img.shields.io/badge/firmware-v0.6.0-orange)
 
 **▶ Открыть прошивальщик:** <https://alex-electron.github.io/Diduino_Nichrome/diduino_nichrome.html> — работает в Chrome или Edge, ставить ничего не нужно. (GitHub Pages отдаёт по HTTPS, а это и нужно Web Serial.)
 
@@ -63,11 +63,9 @@ Diduino_Nichrome/
 ├── firmware/
 │   ├── Diduino_Nichrome/
 │   │   └── Diduino_Nichrome.ino   # скетч Arduino (имя папки должно совпадать с .ino)
-│   └── build-hex.ps1              # пересобирает .hex-артефакты под каждый MCU (ниже)
+│   └── build-hex.ps1              # компилирует оба MCU и встраивает прошивку в страницу ниже
 └── docs/
-    ├── diduino_nichrome.html                    # браузерный программатор (раздаётся через GitHub Pages по HTTPS)
-    ├── Diduino_Nichrome_v0.5.1_atmega328p.hex   # прошивка, которую заливает приложение (обычный Nano)
-    └── Diduino_Nichrome_v0.5.1_atmega168.hex    # прошивка, которую заливает приложение (Nano на ATmega168)
+    └── diduino_nichrome.html      # браузерный программатор + встроенная прошивка (GitHub Pages, HTTPS)
 ```
 
 ---

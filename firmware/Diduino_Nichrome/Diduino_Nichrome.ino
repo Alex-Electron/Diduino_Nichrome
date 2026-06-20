@@ -1,12 +1,12 @@
 //===========================================================================
-//  DIDUINO NICHROME  v0.5.1
+//  DIDUINO NICHROME  v0.6.0
 //  Programmer firmware for Soviet bipolar (fusible-link) PROM КР556РТ4 (256x4).
 //  Arduino Nano (ATmega328P) + boost board "DID_PROG" (rev 1.1/1.2).
 //
 //  Burn protocol: host streams 256 bytes; firmware checksum-gates the transfer,
 //  programs with verify-per-bit, then re-reads & verifies the whole chip on-board.
-//  Serial 115200 8N1. Commands (Enter-terminated): v · p<n> · I/L/D · R · B · s · ?
-//  Also a diagnostic set for board bring-up: a/c/m/d/e/k/W.
+//  Serial 115200 8N1. Commands (Enter-terminated): v · p<n> · I/L/D/S · R · B · T · j · ?
+//  Also a diagnostic set for board bring-up: a/c/m/f/g/e/k/W.  (no command uses both letter cases)
 //
 //  Based on the Diduino programmer (BSD-2-Clause):
 //    original (Radionews): https://github.com/Radionews/diduino
@@ -18,6 +18,8 @@
 //  Co-author: AI
 //  License:   BSD-2-Clause  (inherited from the original Diduino)
 //===========================================================================
+
+#include <EEPROM.h>    // stores the one-time Vpp calibration constant
 
 #define ST A3          // address shift-reg CLOCK (shiftOut clock pin)
 #define SH A2          // address shift-reg LATCH (RCLK), pulsed low->high
@@ -31,7 +33,7 @@
 #define DS_POWER 8      // DS18B20 power (unused here, kept LOW)
 #define LED 13
 #define FW_NAME "DIDUINO NICHROME"
-#define FW_VERSION "0.5.1"
+#define FW_VERSION "0.6.0"
 
 // programming-voltage feedback shift register (boost level), pins per original
 #define PWR_DATA 10
@@ -39,12 +41,18 @@
 #define PWR_CLK 12
 #define PWR_A0 A0
 
-// internal voltmeter (Vpp sense divider on A4). Calibrated to this board:
-// 'v' already matched the multimeter (~11.7V), so keep stock-ish constants.
+// internal voltmeter (Vpp sense divider on A4), RATIOMETRIC against the internal 1.1V bandgap:
+//   Vpp = (adcVpp / adcBandgap) * vCal   — Vcc cancels, so the reading is correct on ANY supply
+//   (external/7805/USB) and immune to sag. vCal absorbs the divider ratio and the per-chip bandgap
+//   tolerance; default works out of the box (~±10%), 'K<measured>' calibrates it exactly into EEPROM.
 #define voltageControl A4
 #define rTop 10000.0
 #define rBottom 2200.0
-#define AREF_V 4.67     // calibrated against multimeter: v=12.49 vs real 11.78 -> 4.95*11.78/12.49
+#define VBG_NOMINAL 1.1                                    // ATmega328P internal bandgap, nominal (V)
+#define VCAL_DEFAULT (VBG_NOMINAL*(rTop+rBottom)/rBottom)  // ≈ 6.10 = 1.1 × divider ratio
+#define EE_CAL_ADDR 0
+#define EE_CAL_MAGIC 0xC1A5
+float vCal = VCAL_DEFAULT;                                 // live constant; loaded from EEPROM if calibrated
 
 word shift_data = 0;    // current 16-bit address word held on the bus
 uint8_t curLevel = 0;   // current Vpp level 0..7
@@ -85,11 +93,25 @@ void set_mux(uint8_t m){
   digitalWrite(AR1, (curMux>>1)&1);
   digitalWrite(AR2, (curMux>>2)&1);
 }
-float get_voltage(){
-  float vADC = (analogRead(voltageControl) / 1024.0) * AREF_V;
-  float current = vADC / rBottom;
-  return current * (rTop + rBottom);
+// one averaged 10-bit ADC reading on channel `mux`, reference = AVcc (REFS0)
+uint16_t adcRead(uint8_t mux){
+  ADMUX = _BV(REFS0) | (mux & 0x0F);
+  delay(2);                                                  // let input/ref settle (bandgap needs it)
+  ADCSRA |= _BV(ADSC); while(ADCSRA & _BV(ADSC)); (void)ADC; // discard first conversion after the switch
+  uint32_t s=0; for(uint8_t i=0;i<16;i++){ ADCSRA |= _BV(ADSC); while(ADCSRA & _BV(ADSC)); s+=ADC; }
+  return (uint16_t)(s>>4);
 }
+void sampleVpp(uint16_t &aVpp, uint16_t &aBg){ aVpp=adcRead(4); aBg=adcRead(0x0E); }  // A4 + 1.1V bandgap (ch 0x0E)
+float get_voltage(){
+  uint16_t aVpp,aBg; sampleVpp(aVpp,aBg);
+  if(!aBg) return 0;                                         // guard
+  return ((float)aVpp/(float)aBg)*vCal;                      // ratiometric → supply-independent
+}
+// EEPROM-persisted calibration (magic + float), survives power cycles and any later supply change
+void calLoad(){ uint16_t m; EEPROM.get(EE_CAL_ADDR,m);
+  if(m==EE_CAL_MAGIC){ float c; EEPROM.get(EE_CAL_ADDR+2,c); if(c>0.5 && c<50) vCal=c; } }
+void calSave(float c){ uint16_t m=EE_CAL_MAGIC; EEPROM.put(EE_CAL_ADDR,m); EEPROM.put(EE_CAL_ADDR+2,c); }
+void calReset(){ uint16_t m=0xFFFF; EEPROM.put(EE_CAL_ADDR,m); vCal=VCAL_DEFAULT; }
 
 //--- helpers ---------------------------------------------------------------
 long readNum(String s){            // parse decimal or 0x.. hex after the cmd char
@@ -117,13 +139,15 @@ void help(){
   Serial.println(F("c<0|1> CS pin level"));
   Serial.println(F("p<0-7> Vpp/boost level (RAISES voltage! socket must be EMPTY)"));
   Serial.println(F("m<0-7> data-bit mux select (which data line routed)"));
-  Serial.println(F("r     read current READ pin (raw + logical)"));
-  Serial.println(F("d     read all 4 RT4 data bits at current address"));
+  Serial.println(F("f     read current READ pin (raw + logical)"));
+  Serial.println(F("g     read all 4 RT4 data bits at current address"));
   Serial.println(F("e<ms> energize Vpp on selected data bit for ms then release"));
   Serial.println(F("k     walk: each address line HIGH one-by-one (scope), 800ms each"));
   Serial.println(F("v     measure Vpp (internal voltmeter)"));
-  Serial.println(F("s     SAFE state (addr0, CS read, WRITE low, level0)"));
+  Serial.println(F("T<cV> calibrate Vpp, centivolts e.g.1250=12.50V (EEPROM); T0 reset; T query"));
+  Serial.println(F("j     SAFE state (addr0, CS read, WRITE low, level0)"));
   Serial.println(F("?     this help"));
+  // note: no command uses both letter cases — upper/lower never collide (e.g. R/r, D/d, S/s are split apart)
 }
 
 void setup(){
@@ -136,6 +160,7 @@ void setup(){
   pinMode(AR0,OUTPUT); pinMode(AR1,OUTPUT); pinMode(AR2,OUTPUT);
   pinMode(LED,OUTPUT); digitalWrite(LED,LOW);
   safeState();
+  calLoad();                       // restore Vpp calibration (if any) before first reading
   Serial.begin(115200);
   Serial.println(F(FW_NAME " v" FW_VERSION " (115200). Type ? for help."));
 }
@@ -168,12 +193,12 @@ void loop(){
       set_mux((uint8_t)n);
       Serial.print(F("MUX=")); Serial.println(curMux);
       break;
-    case 'r':{
+    case 'f':{                       // (was 'r'; split from 'R'=read-chip to avoid a case-pair)
       int raw = digitalRead(READ);
       Serial.print(F("READ raw=")); Serial.print(raw);
       Serial.print(F("  logical=")); Serial.println(!raw);
       break; }
-    case 'd':{
+    case 'g':{                       // (was 'd'; split from 'D'=duty to avoid a case-pair)
       Serial.print(F("DATA bits @0x")); Serial.print(shift_data,HEX); Serial.print(F(": "));
       byte out=0;
       for(uint8_t j=0;j<4;j++){ set_mux(j); delay(2);
@@ -202,6 +227,23 @@ void loop(){
     case 'v':
       Serial.print(F("Vpp=")); Serial.println(get_voltage(),2);
       break;
+    case 'T':{
+      // Vpp calibration (Trim). T<centivolts> sets vCal so the reading matches the meter (e.g. T1250 = 12.50V),
+      // saved in EEPROM (one-time, survives any later supply change). T0 = reset; T = query.
+      // Centivolts (integer) on purpose: reuses readNum's toInt and avoids pulling strtod (~0.5KB → fits ATmega168).
+      // 'T' chosen because both cases are unused — no risk of a case mix-up firing another command.
+      if(n<0){ Serial.print(F("CAL=")); Serial.println(vCal,4); break; }
+      if(n==0){ calReset(); Serial.print(F("CAL=")); Serial.println(vCal,4); break; }
+      uint16_t aVpp,aBg; sampleVpp(aVpp,aBg);
+      if(!aVpp || !aBg){ Serial.println(F("CAL ERR: set a level first")); break; }
+      float c = (n/100.0) * (float)aBg / (float)aVpp;        // C = Vpp_meter × adcBg / adcVpp
+      if(c < 2.0 || c > 15.0){                               // plausible C ≈ Vbg×divider ≈ 6; reject garbage
+        Serial.print(F("CAL ERR: C=")); Serial.print(c,3);   // (e.g. value sent in wrong units → 100x off)
+        Serial.println(F(" out of range, not saved")); break; }
+      vCal = c; calSave(vCal);
+      Serial.print(F("CAL=")); Serial.print(vCal,4);
+      Serial.print(F(" Vpp=")); Serial.println(get_voltage(),2);
+      break; }
     case 'W':{
       // Program a 4-bit value at ADDRESS 0 (RT4), faithful to original write_byte:
       // 40us pulse / 800us recovery, up to 1000 pulses per bit, early-exit on readback.
@@ -349,7 +391,7 @@ void loop(){
         Serial.write(out);
       }
       break; }
-    case 's':
+    case 'j':                        // (was 's'; split from 'S'=soak to avoid a case-pair)
       safeState();
       Serial.println(F("SAFE state set"));
       break;

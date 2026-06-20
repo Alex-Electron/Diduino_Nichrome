@@ -12,7 +12,7 @@ This is a continuation of the open **Diduino** project. The hardware is unchange
 ![platform](https://img.shields.io/badge/board-Arduino%20Nano-00979D?logo=arduino&logoColor=white)
 ![chip](https://img.shields.io/badge/chip-KR556RT4%20256x4-success)
 ![ui](https://img.shields.io/badge/host-Web%20Serial-1aff80)
-![fw](https://img.shields.io/badge/firmware-v0.5.1-orange)
+![fw](https://img.shields.io/badge/firmware-v0.6.0-orange)
 
 **▶ Open the programmer:** <https://alex-electron.github.io/Diduino_Nichrome/diduino_nichrome.html> — runs in Chrome or Edge, nothing to install. (GitHub Pages serves it over HTTPS, which is what Web Serial needs.)
 
@@ -63,11 +63,9 @@ Diduino_Nichrome/
 ├── firmware/
 │   ├── Diduino_Nichrome/
 │   │   └── Diduino_Nichrome.ino   # Arduino sketch (the folder name must match the .ino)
-│   └── build-hex.ps1              # rebuilds the per-MCU .hex artifacts below
+│   └── build-hex.ps1              # compiles both MCUs and embeds the firmware into the page below
 └── docs/
-    ├── diduino_nichrome.html                    # the browser programmer (served via GitHub Pages over HTTPS)
-    ├── Diduino_Nichrome_v0.5.1_atmega328p.hex   # firmware the app flashes (standard Nano)
-    └── Diduino_Nichrome_v0.5.1_atmega168.hex    # firmware the app flashes (ATmega168 Nano)
+    └── diduino_nichrome.html      # the browser programmer + embedded firmware (GitHub Pages, HTTPS)
 ```
 
 ---
