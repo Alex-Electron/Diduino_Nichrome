@@ -44,7 +44,7 @@
 // internal voltmeter (Vpp sense divider on A4), RATIOMETRIC against the internal 1.1V bandgap:
 //   Vpp = (adcVpp / adcBandgap) * vCal   — Vcc cancels, so the reading is correct on ANY supply
 //   (external/7805/USB) and immune to sag. vCal absorbs the divider ratio and the per-chip bandgap
-//   tolerance; default works out of the box (~±10%), 'K<measured>' calibrates it exactly into EEPROM.
+//   tolerance; default works out of the box (~±10%), 'T<centivolts>' calibrates it exactly into EEPROM.
 #define voltageControl A4
 #define rTop 10000.0
 #define rBottom 2200.0

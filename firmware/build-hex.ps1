@@ -78,8 +78,8 @@ foreach ($mcu in $targets.Keys) {
     $html = [IO.File]::ReadAllText($htmlPath)
     $pat  = '(?s)<script type="text/plain" id="fw-' + $mcu + '"[^>]*>.*?</script>'
     $repl = '<script type="text/plain" id="fw-' + $mcu + '" data-crc="' + $crc + '">' + "`n" + $hex + "`n" + '</script>'
-    $new  = [regex]::Replace($html, $pat, $repl)
-    if ($new -eq $html) { throw "embed marker <script id=fw-$mcu> not found in $htmlPath" }
+    if (-not [regex]::IsMatch($html, $pat)) { throw "embed marker <script id=fw-$mcu> not found in $htmlPath" }
+    $new  = [regex]::Replace($html, $pat, $repl)   # may be a no-op if the firmware is unchanged — that's fine
     [IO.File]::WriteAllText($htmlPath, $new, $utf8)
     Write-Host "embedded -> #fw-$mcu (CRC-32 $crc) in diduino_nichrome.html"
   } else {

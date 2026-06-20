@@ -125,7 +125,7 @@ The burn is gated so that the usual ways to wreck a chip are caught before any v
 | `T<cV>` | calibrate Vpp to a meter reading, saved in EEPROM (centivolts, e.g. `T1250`; see [Voltage calibration](#voltage-calibration)) |
 | `j` | safe state |
 
-There is also a diagnostic set for board bring-up (`a c m d e k W`) used to test the address chain, mux, CS line and a single program pulse.
+There is also a diagnostic set for board bring-up (`a c m f g e k W`) used to test the address chain, mux, CS line and a single program pulse.
 
 ---
 
