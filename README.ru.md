@@ -6,6 +6,10 @@
 
 Это продолжение открытого проекта **Diduino**. Железо то же самое; новое здесь — переписанное приложение, которое работает прямо в браузере, и алгоритм прожига, сделанный так, чтобы не убить чип, когда что-то идёт чуть-чуть не так.
 
+<img src="img/board.png" alt="Плата Diduino" width="420">
+
+<sub>Плата Diduino — оригинальная разработка Науменко (naym1993), см. авторов ниже.</sub>
+
 ![license](https://img.shields.io/badge/license-BSD--2--Clause-blue)
 ![platform](https://img.shields.io/badge/board-Arduino%20Nano-00979D?logo=arduino&logoColor=white)
 ![chip](https://img.shields.io/badge/chip-KR556RT4%20256x4-success)
