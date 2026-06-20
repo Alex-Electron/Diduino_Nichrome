@@ -6,16 +6,7 @@
 
 Это продолжение открытого проекта **Diduino**. Железо то же самое; новое здесь — переписанное приложение, которое работает прямо в браузере, и алгоритм прожига, сделанный так, чтобы не убить чип, когда что-то идёт чуть-чуть не так.
 
-<table>
-<tr>
-  <td valign="top"><img src="img/app.png" alt="Веб-приложение Diduino Nichrome" width="460"></td>
-  <td valign="top"><img src="img/board.png" alt="Плата Diduino" width="300"></td>
-</tr>
-<tr>
-  <td align="center"><sub>браузерный программатор (этот проект)</sub></td>
-  <td align="center"><sub>плата Diduino — оригинальная разработка Науменко (naym1993)</sub></td>
-</tr>
-</table>
+<img src="img/app.png" alt="Веб-приложение Diduino Nichrome" width="100%">
 
 ![license](https://img.shields.io/badge/license-BSD--2--Clause-blue)
 ![platform](https://img.shields.io/badge/board-Arduino%20Nano-00979D?logo=arduino&logoColor=white)
@@ -30,6 +21,8 @@
 ## Авторы — оригинальный проект
 
 Плата, схема и повышающий преобразователь — **не мои**. Они из открытого программатора **Diduino**, и вся честь за железо принадлежит его авторам.
+
+<img src="img/board.png" alt="Плата Diduino" width="420">
 
 **Оригинальный проект — главный репозиторий: <https://github.com/Radionews/diduino>**
 
