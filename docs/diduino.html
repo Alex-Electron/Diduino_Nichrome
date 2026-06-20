@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DIDUINO // PROM BURNER</title>
+<style>
+  :root{
+    --bg:#070a07; --green:#00ff41; --green-dim:#1f6e2e; --green-deep:#0a3d12;
+    --amber:#ffb000; --red:#ff3b3b; --cyan:#39d9ff;
+    --mono:ui-monospace,"Cascadia Code","Cascadia Mono",Consolas,"Courier New",monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:radial-gradient(ellipse at 50% -10%,#0d160d 0%,var(--bg) 60%,#020302 100%);
+    color:var(--green);font-family:var(--mono);font-size:14px;line-height:1.45;padding:18px;min-height:100%;
+    text-shadow:0 0 4px rgba(0,255,65,.45)}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:9;
+    background:repeating-linear-gradient(to bottom,rgba(0,0,0,0) 0 2px,rgba(0,0,0,.18) 2px 3px)}
+  body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:9;
+    background:radial-gradient(ellipse at 50% 50%,transparent 60%,rgba(0,0,0,.45) 100%);animation:flick 5s infinite}
+  @keyframes flick{0%,97%{opacity:1}98%{opacity:.86}100%{opacity:1}}
+  @keyframes blink{50%{opacity:0}}
+  .wrap{max-width:1040px;margin:0 auto;position:relative;z-index:1}
+  h1{font-size:20px;letter-spacing:3px;margin:0 0 2px}
+  h1 .cur{animation:blink 1s step-end infinite}
+  .sub{color:var(--green-dim);font-size:12px;letter-spacing:1px;margin-bottom:14px}
+  .panel{border:1px solid var(--green-deep);background:rgba(8,18,8,.6);border-radius:6px;
+    padding:12px 14px;margin-bottom:14px;box-shadow:0 0 12px rgba(0,255,65,.07) inset}
+  .panel h2{font-size:11px;letter-spacing:2px;color:var(--green-dim);margin:0 0 10px;text-transform:uppercase}
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  button,select{font-family:var(--mono);font-size:13px;color:var(--green);background:#0a160a;
+    border:1px solid var(--green-deep);border-radius:4px;padding:8px 14px;cursor:pointer;letter-spacing:1px;
+    transition:.12s;text-shadow:0 0 4px rgba(0,255,65,.5)}
+  button:hover:not(:disabled){background:#0f2a12;border-color:var(--green);box-shadow:0 0 10px rgba(0,255,65,.35)}
+  button:disabled{opacity:.35;cursor:not-allowed}
+  input[type=number]{font-family:var(--mono);font-size:13px;color:var(--green);background:#0a160a;
+    border:1px solid var(--green-deep);border-radius:4px;padding:6px 8px;width:84px;text-shadow:0 0 4px rgba(0,255,65,.5)}
+  label.fld{color:var(--green-dim);font-size:11px;letter-spacing:1px;display:inline-flex;flex-direction:column;gap:3px}
+  #level{padding:6px 8px}   /* match input height */
+  button.danger{color:var(--amber);border-color:#5a3a00}
+  button.danger:hover:not(:disabled){background:#241700;border-color:var(--amber);box-shadow:0 0 10px rgba(255,176,0,.35)}
+  .led{width:11px;height:11px;border-radius:50%;background:#3a0000;box-shadow:0 0 8px #f00;display:inline-block}
+  .led.on{background:var(--green);box-shadow:0 0 10px var(--green)}
+  .stat{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  .big{font-size:22px;font-weight:700}
+  .label{color:var(--green-dim);font-size:11px;letter-spacing:1px}
+  .pill{border:1px solid var(--green-deep);border-radius:20px;padding:6px 12px;font-size:12px}
+  #hex{font-size:17px;line-height:1.35;letter-spacing:1px;white-space:pre;overflow:auto;max-height:600px;
+    border:1px solid var(--green-deep);padding:12px;border-radius:4px;background:#020602}
+  .ha{color:var(--amber);font-weight:bold;text-shadow:0 0 6px rgba(255,176,0,.5)} /* row address */
+  .hc{color:var(--amber);font-weight:bold;text-shadow:0 0 6px rgba(255,176,0,.5)} /* column header - same as row addr */
+  .hz{color:#4f9e62}                                                              /* zero - readable */
+  .hn{color:#8dffa3;font-weight:bold;text-shadow:0 0 7px rgba(0,255,65,.75)}       /* nonzero - bright */
+  .hm{color:#ff7b7b;font-weight:bold;text-shadow:0 0 6px rgba(255,59,59,.9);background:rgba(255,59,59,.28);outline:1px solid rgba(255,80,80,.6);border-radius:2px}  /* mismatch */
+  #bar{height:14px;border:1px solid var(--green-deep);border-radius:3px;overflow:hidden;background:#050a05;margin-top:8px}
+  #barfill{height:100%;width:0;background:linear-gradient(90deg,var(--green-deep),var(--green));
+    box-shadow:0 0 10px var(--green);transition:width .15s}
+  #log{font-size:12px;height:210px;overflow:auto;border:1px solid var(--green-deep);background:#040804;
+    padding:8px;border-radius:4px;white-space:pre-wrap;word-break:break-word}
+  #log .t{color:#16401f}#log .ok{color:#5cff7a}#log .err{color:var(--red)}#log .warn{color:var(--amber)}
+  .hint{color:var(--green-dim);font-size:11px;margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+    <div>
+      <h1>DIDUINO NICHROME <span style="font-size:12px;color:var(--green-dim)">app&nbsp;v0.6.0</span><span class="cur">_</span></h1>
+      <div class="sub" data-i18n="sub">Web Serial · прошивка: Diduino_Nichrome.ino · КР556РТ4 (256×4)</div>
+    </div>
+    <button id="lang" style="padding:6px 12px">EN</button>
+  </div>
+
+  <div class="panel"><h2 data-i18n="h_conn">Соединение</h2>
+    <div class="row">
+      <button id="btnConnect">[ CONNECT ]</button>
+      <button id="btnDisconnect" disabled>[ DISCONNECT ]</button>
+      <span class="stat"><span id="led" class="led"></span><span id="connState" class="label">OFFLINE</span></span>
+      <span class="pill" id="fw">fw: —</span>
+    </div>
+    <div class="hint" data-i18n="hint_conn">Chrome/Edge, открыть локально (file://). Закрой Arduino IDE / DidUino перед CONNECT.</div>
+  </div>
+
+  <div class="panel"><h2 data-i18n="h_chip">Чип · напряжение · параметры прожига</h2>
+    <div class="row" style="margin-bottom:12px;gap:26px;align-items:flex-end">
+      <label class="fld"><span data-i18n="l_chip">микросхема</span><span class="pill">КР556РТ4 · 256×4</span></label>
+      <label class="fld">Vpp<div class="big"><span id="volt">--.--</span> V</div></label>
+      <label class="fld"><span data-i18n="l_level">уровень p0–p7</span>
+        <select id="level">
+          <option value="0">p0 ~11.6</option><option value="1" selected>p1 ~12.5 (РТ4)</option>
+          <option value="2">p2 ~13.0</option><option value="3">p3 ~13.4</option>
+          <option value="4">p4 ~13.8</option><option value="5">p5 ~14.2</option>
+          <option value="6">p6 ~14.7</option><option value="7">p7 ~15.0</option>
+        </select>
+      </label>
+      <label class="fld"><span data-i18n="l_imp">Кол-во импульсов</span><input id="pImp" type="number" value="1000" min="1" max="65535"></label>
+      <label class="fld"><span data-i18n="l_len">Время имп., мкс</span><input id="pLen" type="number" value="40" min="1" max="65535"></label>
+      <label class="fld"><span data-i18n="l_duty">Заполнение %</span><input id="pDuty" type="number" value="10" min="1" max="99"></label>
+      <label class="fld"><span data-i18n="l_soak">Soak имп.</span><input id="pSoak" type="number" value="50" min="0" max="128"></label>
+    </div>
+    <div class="row">
+      <button id="btnVolt" disabled>[ READ V ]</button>
+      <button id="btnSet" disabled data-i18n="b_send">[ ОТПРАВИТЬ НАСТРОЙКИ ]</button>
+    </div>
+    <div class="hint" data-i18n="hint_chip">Напряжение = уровень p0–p7. По умолчанию для РТ4: 1000 имп. / 40 мкс / 10%. BURN берёт эти значения.</div>
+  </div>
+
+  <div class="panel"><h2 data-i18n="h_ops">Операции</h2>
+    <div class="row">
+      <input type="file" id="file" accept=".bin,.rom" style="display:none">
+      <button id="btnFile">[ LOAD .BIN ]</button>
+      <span class="pill" id="fileName">файл: —</span>
+      <button id="btnRead" disabled>[ READ ]</button>
+      <button id="btnBlank" disabled>[ BLANK? ]</button>
+      <button id="btnSave" disabled>[ SAVE .BIN ]</button>
+      <button id="btnVerify" disabled>[ VERIFY ]</button>
+      <button id="btnBurn" class="danger" disabled>[ BURN ▲ ]</button>
+    </div>
+    <div id="bar"><div id="barfill"></div></div>
+    <div id="barlbl" class="hint" style="margin-top:4px;min-height:1.1em;color:var(--green)"></div>
+    <div class="hint" data-i18n="hint_ops">BURN: уровень Vpp p1, загрузи .bin, чип должен быть ЧИСТЫЙ.</div>
+  </div>
+
+  <div class="panel"><h2>HEX <span id="hexsrc" class="label"></span></h2><div id="hexsum" style="white-space:pre;font-family:'Consolas','Courier New',monospace;font-size:13px;line-height:1.45;color:var(--amber);margin:3px 0"></div><div class="hint" id="hexnote"></div><div id="hex">— нет данных —</div></div>
+  <div class="panel"><h2 data-i18n="h_log">Лог</h2><div id="log"></div></div>
+</div>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+let lang='ru';
+const I18N={
+ ru:{sub:'Web Serial · прошивка: Diduino_Nichrome.ino · КР556РТ4 (256×4)',h_conn:'Соединение',h_chip:'Чип · напряжение · параметры прожига',h_ops:'Операции',h_log:'Лог',l_chip:'микросхема',l_level:'уровень p0–p7',l_imp:'Кол-во импульсов',l_len:'Время имп., мкс',l_duty:'Заполнение %',l_soak:'Soak имп.',b_send:'[ ОТПРАВИТЬ НАСТРОЙКИ ]',hint_conn:'Chrome/Edge, открыть локально (file://). Закрой Arduino IDE / DidUino перед CONNECT.',hint_chip:'Напряжение = уровень p0–p7. По умолчанию для РТ4: 1000 имп. / 40 мкс / 10%. BURN берёт эти значения.',hint_ops:'BURN: уровень Vpp p1, загрузи .bin, чип должен быть ЧИСТЫЙ.'},
+ en:{sub:'Web Serial · firmware: Diduino_Nichrome.ino · КР556РТ4 (256×4)',h_conn:'Connection',h_chip:'Chip · voltage · burn parameters',h_ops:'Operations',h_log:'Log',l_chip:'chip',l_level:'level p0–p7',l_imp:'Pulses',l_len:'Pulse time, µs',l_duty:'Duty %',l_soak:'Soak pulses',b_send:'[ SEND SETTINGS ]',hint_conn:'Chrome/Edge, open locally (file://). Close Arduino IDE / DidUino before CONNECT.',hint_chip:'Voltage = level p0–p7. RT4 defaults: 1000 pulses / 40 µs / 10%. BURN uses these values.',hint_ops:'BURN: Vpp level p1, load .bin, chip must be BLANK.'}
+};
+function setLang(l){lang=l;document.querySelectorAll('[data-i18n]').forEach(e=>{const k=e.getAttribute('data-i18n');if(I18N[l][k]!==undefined)e.textContent=I18N[l][k];});$('lang').textContent=l==='ru'?'EN':'RU';document.documentElement.lang=l;setFileName();renderHex(hexShown,hexMark);}
+// log-message dictionary (firmware stays an English protocol; the app localises everything the user sees)
+const MSG={
+ ru:{port_open:'порт открыт, сброс Arduino…',fw_bad:'⚠ баннер не Diduino_Nichrome — залей Diduino_Nichrome.ino',fw_need:'нужна Diduino_Nichrome.ino',fw_old:(v,min)=>'⚠ прошивка Nichrome v'+v+' устарела — нужна ≥ '+min+'. Прожиг заблокирован.',fw_block:(min)=>'прожиг заблокирован: нужна прошивка Nichrome ≥ '+min,connected:'подключено',
+  conn_fail:e=>'ошибка подключения: '+e,disconnected:'отключено',no_ws:'Web Serial недоступен — нужен Chrome/Edge',
+  volt:v=>'Vpp = '+v+' В',no_v:'нет ответа на v',settings:p=>`настройки: имп=${p.imp} t=${p.len}мкс duty=${p.duty}% soak=${p.soak} p${p.lvl}`,
+  reading:n=>'чтение '+n+' байт…',read_done:(n,nz)=>`прочитано ${n}, ненулевых ${nz}`,read_err:e=>'ошибка чтения: '+e,
+  blank_ok:'*** ЧИП ЧИСТЫЙ ***',blank_no:nz=>`*** НЕ ПУСТОЙ: ${nz} ненулевых ***`,need_bin:'сначала загрузи .bin',
+  verify_ok:n=>`*** VERIFY OK — ${n}/${n} ***`,verify_bad:(ok,n,m,f)=>`*** VERIFY: ${ok}/${n} ок, расхождений ${m} (1-е @0x${f}) ***`,
+  nothing_save:'нечего сохранять — сначала READ',saved:n=>'дамп сохранён ('+n+' б)',
+  burn_confirm:n=>`Прожиг КР556РТ4 (${n} б) необратим. Чип ЧИСТЫЙ? Продолжить?`,burn_set:p=>`SET: имп=${p.imp} t=${p.len}мкс duty=${p.duty}% soak=${p.soak} p${p.lvl}`,
+  burn_send:n=>'BURN: отправляю '+n+' байт на плату…',crc_bad:(c,m)=>`CRC-32 НЕ СОВПАЛА: плата=${c} ≠ файл=${m} → ОТМЕНА (ошибка передачи)`,
+  crc_ok:m=>`✓ CRC-32 совпала (${m}) — передача без ошибок`,burn_ok:'*** ПРОЖИГ УСПЕШЕН (сверка на плате) ***',burn_err:'*** ПРОЖИГ С ОШИБКАМИ — см. лог ***',
+  burn_prog:(a,n)=>`прожиг ${a}/${n}…`,burn_verf:(a,n)=>`сверка ${a}/${n}…`,burn_wait:'жду ответа платы…',
+  loaded:(nm,n)=>'загружен '+nm+', '+n+' б',short_file:n=>'⚠ файл короче '+n,ready:'готов. CONNECT → операции.',proto:'протокол: v · p<n> · I/L/D · R · B · s',
+  file_none:'файл: —',fpill:(nm,n)=>'файл: '+nm+' ('+n+'б)',hex_none:'— нет данных —',src_file:'· показан ФАЙЛ',src_chip:'· показан ЧИП',crc1:s=>'· CRC-32: '+s,crc2:(d,r)=>'· CRC-32 (4 бита): '+d+' · сырой файл: '+r,crc_note:'РТ4 = 4 бита/ячейку: «4 бита» — данные на чипе (сверяй с ним), «сырой файл» — все 8 бит файла (как CRC сторонней утилиты по байтам)',crc_cmp:(ff,cc,ok)=>'· файл (4 бита): '+ff+' · чип: '+cc+(ok?' ✓ совпало':' ✗ расхождение'),crc_note_v:'сверка по 4 битам данных (старший нибл на чипе отсутствует)',l_raw:'сырой файл',l_f4:'файл (4 бита)',l_chip2:'чип',tt_mism:(a,w,g)=>'@0x'+a+': ждали 0x'+w+', на чипе 0x'+g},
+ en:{port_open:'port open, resetting Arduino…',fw_bad:'⚠ banner is not Diduino_Nichrome — flash Diduino_Nichrome.ino',fw_need:'need Diduino_Nichrome.ino',fw_old:(v,min)=>'⚠ Nichrome firmware v'+v+' is too old — need ≥ '+min+'. Burn disabled.',fw_block:(min)=>'burn blocked: need Nichrome firmware ≥ '+min,connected:'connected',
+  conn_fail:e=>'connect failed: '+e,disconnected:'disconnected',no_ws:'Web Serial unavailable — use Chrome/Edge',
+  volt:v=>'Vpp = '+v+' V',no_v:'no reply to v',settings:p=>`settings: pulses=${p.imp} t=${p.len}us duty=${p.duty}% soak=${p.soak} p${p.lvl}`,
+  reading:n=>'reading '+n+' bytes…',read_done:(n,nz)=>`read ${n}, non-zero ${nz}`,read_err:e=>'read error: '+e,
+  blank_ok:'*** CHIP IS BLANK ***',blank_no:nz=>`*** NOT BLANK: ${nz} non-zero ***`,need_bin:'load .bin first',
+  verify_ok:n=>`*** VERIFY OK — ${n}/${n} ***`,verify_bad:(ok,n,m,f)=>`*** VERIFY: ${ok}/${n} ok, mismatches ${m} (1st @0x${f}) ***`,
+  nothing_save:'nothing to save — READ first',saved:n=>'dump saved ('+n+' B)',
+  burn_confirm:n=>`Burning КР556РТ4 (${n} B) is irreversible. Chip BLANK? Continue?`,burn_set:p=>`SET: pulses=${p.imp} t=${p.len}us duty=${p.duty}% soak=${p.soak} p${p.lvl}`,
+  burn_send:n=>'BURN: sending '+n+' bytes to board…',crc_bad:(c,m)=>`CRC-32 MISMATCH: board=${c} ≠ file=${m} → ABORTED (transfer error)`,
+  crc_ok:m=>`✓ CRC-32 match (${m}) — transfer OK`,burn_ok:'*** BURN SUCCESS (verified on board) ***',burn_err:'*** BURN HAD ERRORS — see log ***',
+  burn_prog:(a,n)=>`programming ${a}/${n}…`,burn_verf:(a,n)=>`verifying ${a}/${n}…`,burn_wait:'waiting for board…',
+  loaded:(nm,n)=>'loaded '+nm+', '+n+' B',short_file:n=>'⚠ file shorter than '+n,ready:'ready. CONNECT → operations.',proto:'protocol: v · p<n> · I/L/D · R · B · s',
+  file_none:'file: —',fpill:(nm,n)=>'file: '+nm+' ('+n+' B)',hex_none:'— no data —',src_file:'· showing FILE',src_chip:'· showing CHIP',crc1:s=>'· CRC-32: '+s,crc2:(d,r)=>'· CRC-32 (4-bit): '+d+' · raw file: '+r,crc_note:'RT4 = 4 bits/cell: «4-bit» is the data on the chip (compare with it), «raw file» is all 8 bits of the file (what an external tool CRCs over bytes)',crc_cmp:(ff,cc,ok)=>'· file (4-bit): '+ff+' · chip: '+cc+(ok?' ✓ match':' ✗ differ'),crc_note_v:'compared over the 4-bit data (high nibble is not present on the chip)',l_raw:'raw file',l_f4:'file (4-bit)',l_chip2:'chip',tt_mism:(a,w,g)=>'@0x'+a+': expected 0x'+w+', chip 0x'+g}
+};
+function tr(k,...a){let d=MSG[lang]||MSG.ru,m=d[k];if(m===undefined)m=MSG.ru[k];if(m===undefined)return k;return typeof m==='function'?m(...a):m;}
+const RT4={cmd:'h',size:256,bits:4};   // только КР556РТ4
+let port=null,writer=null,reader=null,keepReading=false,rxq=[];
+let fwOk=false;                           // firmware confirmed = Nichrome AND >= MIN_FW
+const MIN_FW='0.5.1';                      // app protocol (Y+CRC gate #9, PROG/VERF progress) requires this
+function vge(a,b){const p=String(a).split('.').map(Number),q=String(b).split('.').map(Number);for(let i=0;i<3;i++){const x=p[i]||0,y=q[i]||0;if(x>y)return true;if(x<y)return false;}return true;}
+let loadedName='',hexShown=null,hexMark=false;
+let fileData=null,chipData=null;
+const chip=()=>RT4;
+const mask=v=>(v&0x0F);
+function crc32(src,n,low){let c=~0>>>0;for(let i=0;i<n;i++){c^=(src[i]||0)&(low?0x0F:0xFF);for(let k=0;k<8;k++)c=(c>>>1)^(0xEDB88320&-(c&1));}return (~c)>>>0;}
+const hx8=v=>'0x'+(v>>>0).toString(16).toUpperCase().padStart(8,'0');
+function crcLine(k,v){return (tr(k)+':').padEnd(15)+v;}   // aligned label for the stacked CRC block
+
+function log(m,c){const d=new Date(),t=`[${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}] `;
+  const e=$('log');e.innerHTML+=`<span class="t">${t}</span><span class="${c||''}">${m}</span>\n`;e.scrollTop=e.scrollHeight;}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+async function readLoop(){try{while(port&&port.readable&&keepReading){const{value,done}=await reader.read();if(done)break;if(value)for(const b of value)rxq.push(b);}}catch(e){if(keepReading)log('read err: '+e,'err');}}
+async function send(s){await writer.write(new TextEncoder().encode(s));}
+async function sendBytes(u8){await writer.write(u8);}
+function flushRx(){rxq=[];}
+async function readExactly(n,to=5000){const t0=performance.now();while(rxq.length<n){if(performance.now()-t0>to)throw new Error('timeout '+rxq.length+'/'+n);await sleep(6);}return rxq.splice(0,n);}
+async function readTextUntil(marks,to=8000){const t0=performance.now();let b='';while(performance.now()-t0<to){if(rxq.length){b+=new TextDecoder().decode(new Uint8Array(rxq.splice(0,rxq.length)));for(const m of marks)if(b.includes(m))return b;}await sleep(12);}return b;}
+function setBL(t){$('barlbl').textContent=t||'';}
+// read the burn stream line-by-line: move the bar on PROG/VERF markers, log each line, stop on the final verdict
+async function readBurnResult(to=180000){
+  const t0=performance.now(); let b='',done='';
+  while(performance.now()-t0<to){
+    if(rxq.length){
+      b+=new TextDecoder().decode(new Uint8Array(rxq.splice(0,rxq.length)));
+      let nl;
+      while((nl=b.indexOf('\n'))>=0){
+        const line=b.slice(0,nl).replace(/\r$/,'').trim(); b=b.slice(nl+1);
+        if(!line)continue;
+        const n=chip().size, mp=line.match(/^PROG\s+(\d+)/), mv=line.match(/^VERF\s+(\d+)/);
+        if(mp){$('barfill').style.width=Math.min(50,Math.round(+mp[1]/n*50))+'%';setBL(tr('burn_prog',+mp[1],n));continue;}
+        if(mv){$('barfill').style.width=(50+Math.min(50,Math.round(+mv[1]/n*50)))+'%';setBL(tr('burn_verf',+mv[1],n));continue;}
+        log('  '+line, line.includes('OK')?'ok':(/MISMATCH|FAILED|ABORTED|OVERBURN|NOT BLANK|ERR/.test(line)?'err':''));
+        if(/BURN OK|BURN FAILED|ABORTED/.test(line))done=line;
+      }
+    }
+    if(done)break;
+    await sleep(12);
+  }
+  return done;
+}
+
+async function connect(){
+  if(!('serial'in navigator)){log(tr('no_ws'),'err');return;}
+  try{
+    port=await navigator.serial.requestPort();
+    await port.open({baudRate:115200});
+    writer=port.writable.getWriter();reader=port.readable.getReader();
+    keepReading=true;rxq=[];readLoop();
+    log(tr('port_open'));await sleep(2600);
+    const b=new TextDecoder().decode(new Uint8Array(rxq.splice(0,rxq.length)));
+    log('BANNER: '+b.replace(/\r?\n/g,' | ').trim());
+    const vm=b.match(/NICHROME v([\d.]+)/);
+    const isNi=b.includes('NICHROME'), ver=vm?vm[1]:null;
+    fwOk = isNi && ver!=null && vge(ver,MIN_FW);          // require Nichrome AND >= MIN_FW
+    if(fwOk){ $('fw').textContent='fw: Nichrome v'+ver+' ✓'; }
+    else if(isNi){ $('fw').textContent='fw: Nichrome v'+(ver||'?')+' ⚠ <'+MIN_FW; log(tr('fw_old',ver||'?',MIN_FW),'err'); }
+    else { $('fw').textContent='fw: ? '+tr('fw_need'); log(tr('fw_bad'),'err'); }
+    setOnline(true);log(tr('connected'),'ok');
+    updateOps();
+    if(fwOk) await readVoltage();   // auto-read Vpp once firmware confirmed
+  }catch(e){log(tr('conn_fail',e),'err');}
+}
+async function disconnect(){keepReading=false;try{await reader.cancel();reader.releaseLock();}catch(e){}try{writer.releaseLock();}catch(e){}try{await port.close();}catch(e){}port=writer=reader=null;fwOk=false;setOnline(false);updateOps();log(tr('disconnected'));}
+function setOnline(on){$('led').classList.toggle('on',on);$('connState').textContent=on?'ONLINE':'OFFLINE';
+  $('btnConnect').disabled=on;$('btnDisconnect').disabled=!on;
+  for(const id of['btnVolt','btnRead','btnBlank','btnSet'])$(id).disabled=!on;updateOps();}
+
+async function selectChip(){/* Nichrome: РТ4 жёстко зашит, выбор не нужен */}
+async function readVoltage(){flushRx();await send('v\n');const t=await readTextUntil(['Vpp='],2500);const m=t.match(/Vpp=([\d.]+)/);if(m){$('volt').textContent=m[1];log(tr('volt',m[1]),'ok');}else log(tr('no_v'),'warn');}
+function getParams(){const c=(v,lo,hi,d)=>{v=parseInt(v,10);return isNaN(v)?d:Math.max(lo,Math.min(hi,v));};
+  return{imp:c($('pImp').value,1,65535,1000),len:c($('pLen').value,1,65535,40),duty:c($('pDuty').value,1,99,10),soak:c($('pSoak').value,0,128,50),lvl:parseInt($('level').value,10)};}
+async function sendSetParams(p){flushRx();
+  await send('I'+p.imp+'\n');  await readTextUntil(['imp='],1500);
+  await send('L'+p.len+'\n');  await readTextUntil(['len='],1500);
+  await send('D'+p.duty+'\n'); await readTextUntil(['duty='],1500);
+  await send('S'+p.soak+'\n'); await readTextUntil(['soak='],1500);
+  await send('p'+p.lvl+'\n');  await readTextUntil(['Vpp='],2500);}
+async function sendSettings(){const p=getParams();await sendSetParams(p);
+  log(tr('settings',p),'ok');await readVoltage();}
+
+async function readChip(){
+  const n=chip().size;log(tr('reading',n));
+  flushRx();await send('R\n');
+  try{const bytes=await readExactly(n,Math.max(8000,n*40));
+    chipData=new Uint8Array(bytes.map(mask));renderHex(chipData);
+    const nz=chipData.filter(x=>x!==0).length;
+    log(tr('read_done',n,nz),'ok');updateOps();return chipData;
+  }catch(e){log(tr('read_err',e),'err');return null;}
+}
+async function blankCheck(){const d=await readChip();if(!d)return;const nz=d.filter(x=>x!==0).length;
+  log(nz===0?tr('blank_ok'):tr('blank_no',nz),nz===0?'ok':'warn');}
+async function verify(){if(!fileData){log(tr('need_bin'),'warn');return;}const d=await readChip();if(!d)return;
+  let m=0,f=-1;const n=chip().size;for(let i=0;i<n;i++)if(d[i]!==mask(fileData[i]||0)){m++;if(f<0)f=i;}
+  renderHex(chipData,true);
+  $('hexsum').textContent=crcLine('l_raw',hx8(crc32(fileData,n,false)))+'\n'+crcLine('l_f4',hx8(crc32(fileData,n,true)))+'\n'+crcLine('l_chip2',hx8(crc32(chipData,n,true)))+(m===0?'  ✓':'  ✗');   // raw file on top, file(4-bit) above chip for eye-compare (CRC-32 label is in the HEX header)
+  $('hexnote').textContent=tr('crc_note_v');
+  log(m===0?tr('verify_ok',n):tr('verify_bad',n-m,n,m,f.toString(16).toUpperCase()),m===0?'ok':'err');}
+function saveBin(){if(!chipData){log(tr('nothing_save'),'warn');return;}
+  const blob=new Blob([chipData],{type:'application/octet-stream'});const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download='RT4_dump.bin';a.click();log(tr('saved',chipData.length),'ok');}
+
+async function burn(){
+  if(!fileData){log(tr('need_bin'),'warn');return;}
+  if(!fwOk){log(tr('fw_block',MIN_FW),'err');return;}   // refuse to burn unless Nichrome >= MIN_FW
+  const n=chip().size;
+  if(!confirm(tr('burn_confirm',n)))return;
+  const p=getParams();
+  log(tr('burn_set',p),'warn');
+  await sendSetParams(p);
+  flushRx();
+  log(tr('burn_send',n),'warn');
+  await send('B\n');
+  await readTextUntil(['SEND 256','SEND'],3000);
+  const buf=new Uint8Array(n); for(let i=0;i<n;i++)buf[i]=fileData[i]||0;
+  flushRx();
+  await sendBytes(buf);
+  // контроль целостности передачи по CRC-32 (тот же, что в HEX-панели и во внешних утилитах)
+  const crcResp=await readTextUntil(['RXCRC='],6000);
+  const mm=crcResp.match(/RXCRC=0x([0-9A-Fa-f]+)/);
+  const chipCrc=mm?(parseInt(mm[1],16)>>>0):-1;
+  let myCrc=~0>>>0; for(let i=0;i<n;i++){myCrc^=buf[i]&0xFF;for(let k=0;k<8;k++)myCrc=(myCrc>>>1)^(0xEDB88320&-(myCrc&1));} myCrc=(~myCrc)>>>0;
+  const hx=v=>'0x'+(v>>>0).toString(16).toUpperCase().padStart(8,'0');
+  if(chipCrc!==myCrc){ await send('N\n');
+    log(tr('crc_bad',hx(chipCrc),hx(myCrc)),'err');
+    $('barfill').style.width='0'; return; }
+  log(tr('crc_ok',hx(myCrc)),'ok');
+  await send('Y'+myCrc.toString(16).toUpperCase().padStart(8,'0')+'\n');   // #9: send GO + expected CRC-32; firmware refuses to burn unless it matches
+  $('barfill').style.width='0'; setBL(tr('burn_wait'));
+  const res=await readBurnResult(180000);     // moves the bar from PROG/VERF markers and logs every line
+  const ok=res.includes('BURN OK');
+  $('barfill').style.width='100%';
+  log(ok?tr('burn_ok'):tr('burn_err'), ok?'ok':'err');
+  setBL('');
+  setTimeout(()=>$('barfill').style.width='0',1500);
+  await readChip();
+}
+
+function loadFile(f){const r=new FileReader();r.onload=()=>{fileData=new Uint8Array(r.result);
+  loadedName=f.name;setFileName();log(tr('loaded',f.name,fileData.length));
+  if(fileData.length<chip().size)log(tr('short_file',chip().size),'warn');renderHex(fileData);updateOps();};r.readAsArrayBuffer(f);}
+function setFileName(){$('fileName').textContent=loadedName?tr('fpill',loadedName,(fileData?fileData.length:0)):tr('file_none');}
+function renderHex(src,mark){if(!src)src=chipData||fileData;hexShown=src;hexMark=mark;
+  if(!src){$('hexsrc').textContent='';$('hex').textContent=tr('hex_none');$('hexsum').textContent='';$('hexnote').textContent='';return;}
+  $('hexsrc').textContent=((src===fileData)?tr('src_file'):((src===chipData)?tr('src_chip'):''))+' · CRC-32';
+  const n=chip().size;let o='';
+  const craw=crc32(src,n,false), c4=crc32(src,n,true);   // 4-bit (data) CRC is comparable to a chip read; raw includes the unused high nibble
+  if(src===fileData){ $('hexsum').textContent=crcLine('l_raw',hx8(craw))+'\n'+crcLine('l_f4',hx8(c4)); $('hexnote').textContent=(craw!==c4)?tr('crc_note'):''; }
+  else { $('hexsum').textContent=crcLine('l_chip2',hx8(c4)); $('hexnote').textContent=''; }
+  let hd='     ';for(let c=0;c<16;c++)hd+=c.toString(16).toUpperCase().padStart(chip().bits===8?2:1,'0')+' ';
+  o+=`<span class="hc">${hd}</span>\n`;
+  for(let r=0;r<n;r+=16){o+=`<span class="ha">${r.toString(16).toUpperCase().padStart(3,'0')}:</span> `;
+    for(let c=0;c<16&&r+c<n;c++){const i=r+c,v=mask(src[i]!==undefined?src[i]:0);
+      let cls=v?'hn':'hz',ttl='';
+      if(mark&&chipData&&fileData&&chipData[i]!==mask(fileData[i]||0)){cls='hm';ttl=` title="${tr('tt_mism',i.toString(16).toUpperCase().padStart(2,'0'),mask(fileData[i]||0).toString(16).toUpperCase(),v.toString(16).toUpperCase())}"`;}
+      o+=`<span class="${cls}"${ttl}>${v.toString(16).toUpperCase().padStart(chip().bits===8?2:1,'0')}</span> `;}
+    o+='\n';}$('hex').innerHTML=o;}
+function updateOps(){const on=!!port;$('btnVerify').disabled=!(on&&fileData);$('btnBurn').disabled=!(on&&fileData&&fwOk);
+  $('btnSave').disabled=!(on&&chipData);}
+
+$('btnConnect').onclick=connect;$('btnDisconnect').onclick=disconnect;$('btnVolt').onclick=readVoltage;
+$('btnRead').onclick=readChip;$('btnBlank').onclick=blankCheck;$('btnSave').onclick=saveBin;
+$('btnVerify').onclick=verify;$('btnBurn').onclick=burn;$('btnSet').onclick=sendSettings;
+$('btnFile').onclick=()=>{$('file').value='';$('file').click();};$('file').onchange=e=>{if(e.target.files[0])loadFile(e.target.files[0]);};
+$('lang').onclick=()=>setLang(lang==='ru'?'en':'ru');setLang('ru');
+log(tr('ready'),'ok');
+log(tr('proto'),'t');
+</script>
+</body>
+</html>
