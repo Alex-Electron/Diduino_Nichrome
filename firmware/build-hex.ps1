@@ -41,6 +41,23 @@ if (-not $cli) {
 if (-not $cli) { throw "arduino-cli not found (install it, or Arduino IDE 2.x)." }
 Write-Host "arduino-cli: $cli"
 
+$htmlPath = Join-Path $root 'docs\diduino_nichrome.html'
+$utf8 = New-Object System.Text.UTF8Encoding($false)   # UTF-8 without BOM
+
+# CRC-32 (poly 0xEDB88320) — must match crc32() in the web app, so the page can verify its own embed.
+# Uses int64 with explicit 32-bit masking; note 0xFFFFFFFF is a NEGATIVE int32 in PS, hence the L literals.
+function Get-Crc32([byte[]]$data){
+  [long]$crc = 0xFFFFFFFFL
+  foreach($b in $data){
+    $crc = $crc -bxor [long]$b
+    for($k=0; $k -lt 8; $k++){
+      if(($crc -band 1) -ne 0){ $crc = (($crc -shr 1) -bxor 0xEDB88320L) -band 0xFFFFFFFFL }
+      else { $crc = ($crc -shr 1) -band 0xFFFFFFFFL }
+    }
+  }
+  return ('0x{0:X8}' -f (($crc -bxor 0xFFFFFFFFL) -band 0xFFFFFFFFL))
+}
+
 foreach ($mcu in $targets.Keys) {
   $fqbn   = $targets[$mcu]
   $outDir = Join-Path $env:TEMP "diduino_build_$mcu"
@@ -50,4 +67,22 @@ foreach ($mcu in $targets.Keys) {
   if ($LASTEXITCODE -ne 0) { throw "compile failed for $mcu ($LASTEXITCODE) - does it still fit?" }
   Copy-Item (Join-Path $outDir 'Diduino_Nichrome.ino.hex') $dest -Force
   Write-Host "OK -> $dest"
+
+  # Embed the freshly built hex into the page so a single saved .html flashes with no external file.
+  # Replaces the whole <script type="text/plain" id="fw-$mcu" ...>...</script>, stamping a CRC-32 (data-crc)
+  # that the app re-checks before flashing. Keeps the .ino/.hex/HTML in sync and guards against a corrupt embed.
+  if (Test-Path $htmlPath) {
+    $raw  = (([IO.File]::ReadAllText($dest)) -replace "`r","").TrimEnd("`n")
+    $crc  = Get-Crc32 ([Text.Encoding]::ASCII.GetBytes($raw))   # '0xXXXXXXXX', must match the app's crc32()
+    $hex  = $raw -replace '\$','$$$$'   # escape $ for the regex replacement string (Intel HEX has none, but be safe)
+    $html = [IO.File]::ReadAllText($htmlPath)
+    $pat  = '(?s)<script type="text/plain" id="fw-' + $mcu + '"[^>]*>.*?</script>'
+    $repl = '<script type="text/plain" id="fw-' + $mcu + '" data-crc="' + $crc + '">' + "`n" + $hex + "`n" + '</script>'
+    $new  = [regex]::Replace($html, $pat, $repl)
+    if ($new -eq $html) { throw "embed marker <script id=fw-$mcu> not found in $htmlPath" }
+    [IO.File]::WriteAllText($htmlPath, $new, $utf8)
+    Write-Host "embedded -> #fw-$mcu (CRC-32 $crc) in diduino_nichrome.html"
+  } else {
+    Write-Warning "html not found, skipped embed: $htmlPath"
+  }
 }

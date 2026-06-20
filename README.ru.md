@@ -16,6 +16,8 @@
 
 **▶ Открыть прошивальщик:** <https://alex-electron.github.io/Diduino_Nichrome/diduino_nichrome.html> — работает в Chrome или Edge, ставить ничего не нужно. (GitHub Pages отдаёт по HTTPS, а это и нужно Web Serial.)
 
+<a href="https://alex-electron.github.io/Diduino_Nichrome/diduino_nichrome.html"><img src="img/launch.png" alt="Открыть прошивальщик Diduino Nichrome" height="52"></a>
+
 ---
 
 ## Авторы — оригинальный проект
