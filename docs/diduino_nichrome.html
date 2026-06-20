@@ -2230,7 +2230,7 @@ async function flashNano(){
 }
 
 async function selectChip(){/* Nichrome: РТ4 жёстко зашит, выбор не нужен */}
-const VSETTLE=1000;   // boost output settles after a level change / power-up before Vpp reads true
+const VSETTLE=1200;   // boost output settles after a level change / power-up before Vpp reads true
 async function readVoltage(settleMs=0){
   if(settleMs) await sleep(settleMs);                       // let the boost settle before sampling
   flushRx();await send('v\n');const t=await readTextUntil(['Vpp='],2500);const m=t.match(/Vpp=([\d.]+)/);if(m){$('volt').textContent=m[1];log(tr('volt',m[1]),'ok');}else log(tr('no_v'),'warn');}

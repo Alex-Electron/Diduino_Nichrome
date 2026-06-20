@@ -142,7 +142,25 @@ There is also a diagnostic set for board bring-up (`a c m d e k W`) used to test
 
 ## Voltage calibration
 
-The board reads Vpp through a divider on A4. The constants in the firmware (`rTop`, `rBottom`, `AREF_V`) are set so the `v` reading matches a multimeter on this specific board. If you build another board, set the level to p7, measure the real voltage, and adjust `AREF_V` until `v` agrees.
+**Why this exists.** The board reads Vpp through a divider on A4. The firmware does **not** assume a fixed supply voltage — it measures Vpp *ratiometrically* against the chip's internal 1.1 V band-gap reference, so the reading is correct **whatever powers the board** (a bench supply, the on-board 7805, or just the Nano's USB 5 V) and stays correct even if the rail sags under load. That removes the old "it reads right on my 5 V but wrong on yours" problem.
+
+The one thing the firmware can't know on its own is the *exact* value of that internal reference — it's nominally 1.1 V but varies about **±10 %** from chip to chip. Out of the box the reading is therefore already supply-independent but only ~±10 % accurate in absolute terms. A **one-time calibration** pins it down exactly, and the result is stored in the Nano's EEPROM, so you do it once and it survives reboots and any later change of power source.
+
+**When to bother.** If a rough Vpp is fine for you, skip it — the readings already track reality. If you want the displayed Vpp to match your multimeter to two digits, calibrate once.
+
+**How to calibrate (one time, ~30 s):**
+
+1. Flash firmware **v0.6.0 or newer** (the app does this — see Quick start) and **CONNECT**.
+2. Set any Vpp level — e.g. pick **p1** in the dropdown and press **SEND SETTINGS**. (The level doesn't matter: the calibration constant is the same at every level. Just don't put a chip in the socket while raising the voltage.)
+3. Put your multimeter on the Vpp test point and read the **actual** voltage **now**.
+4. Press **`[ CAL V ]`**. The dialog shows what the board currently thinks Vpp is and asks for the real value — type the number your multimeter shows **at this moment** (e.g. `12.50`) and confirm.
+5. Done. The app stores the constant, re-reads Vpp, and verifies it now matches. The value lives in EEPROM forever (until you re-calibrate).
+
+**Notes.**
+- You must enter the voltage **measured right now**, not an expected/remembered one — the firmware compares your number against what it reads at this instant. (The dialog shows the live reading to keep you honest.)
+- It's level-independent, so calibrating at p1 makes every level (p0…p7) correct.
+- Serial command (Arduino IDE / any terminal): `T<centivolts>` — e.g. `T1250` for 12.50 V; `T0` resets to default; `T` alone prints the current constant.
+- If the app warns the post-calibration reading is far off (e.g. ~100× the value you typed), the board firmware and the app don't match — re-flash the Nano with **FLASH NANO** and try again.
 
 ---
 
