@@ -18,10 +18,12 @@ This is a continuation of the open **Diduino** project. The hardware is unchange
 
 ## Credits — the original project
 
-The board, the schematic and the boost-converter design are **not mine**. They come from the Diduino programmer, and all the hardware credit goes to its authors:
+The board, the schematic and the boost-converter design are **not mine**. They come from the open **Diduino** programmer, and all the hardware credit goes to its authors.
 
-- **Andrew Naumenko (naym1993)** — Diduino, schematic and PCB.
-  EasyEDA: <https://oshwlab.com/naym1993/prog_did> · GitHub: <https://github.com/Radionews/diduino>
+**Original project — main repository: <https://github.com/Radionews/diduino>**
+
+- **Andrew Naumenko (naym1993)** — Diduino author, schematic and PCB.
+  EasyEDA: <https://oshwlab.com/naym1993/prog_did>
 - **walhi** — the base Arduino programmer this grew from.
   <https://github.com/walhi/arduino_eprom27_programmer>
 - **ProgRT** thread on the ZX-PK forum — where the whole idea started.
