@@ -53,7 +53,7 @@
   .hz{color:#4f9e62}                                                              /* zero - readable */
   .hn{color:#8dffa3;font-weight:bold;text-shadow:0 0 7px rgba(0,255,65,.75)}       /* nonzero - bright */
   .hm{color:#ff7b7b;font-weight:bold;text-shadow:0 0 6px rgba(255,59,59,.9);background:rgba(255,59,59,.28);outline:1px solid rgba(255,80,80,.6);border-radius:2px}  /* mismatch */
-  #bar{height:14px;border:1px solid var(--green-deep);border-radius:3px;overflow:hidden;background:#050a05;margin-top:8px}
+  #bar{height:14px;border:1px solid var(--green-deep);border-radius:3px;overflow:hidden;background:#050a05;margin-top:16px}
   #barfill{height:100%;width:0;background:linear-gradient(90deg,var(--green-deep),var(--green));
     box-shadow:0 0 10px var(--green);transition:width .15s}
   #hiF{appearance:none;-webkit-appearance:none;width:14px;height:14px;margin:0;border:1px solid var(--green);border-radius:3px;background:rgba(0,255,65,.18);cursor:pointer;position:relative;flex:none}
@@ -69,7 +69,7 @@
 <div class="wrap">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
     <div>
-      <h1>DIDUINO NICHROME <span style="font-size:12px;color:var(--green-dim)">app&nbsp;v0.6.7</span><span class="cur">_</span></h1>
+      <h1>DIDUINO NICHROME <span style="font-size:12px;color:var(--green-dim)">app&nbsp;v0.6.9</span><span class="cur">_</span></h1>
       <div class="sub" data-i18n="sub">Web Serial · прошивка: Diduino_Nichrome.ino · КР556РТ4 (256×4)</div>
     </div>
     <button id="lang" style="padding:6px 12px">EN</button>
@@ -110,11 +110,11 @@
   </div>
 
   <div class="panel"><h2 data-i18n="h_ops">Операции</h2>
-    <div class="row" style="align-items:flex-start">
+    <div class="row" style="align-items:flex-start;padding-bottom:20px">
       <input type="file" id="file" accept=".bin,.rom" style="display:none">
-      <span style="display:inline-flex;flex-direction:column;align-items:flex-start;gap:4px">
+      <span style="position:relative;display:inline-flex">
         <button id="btnFile">[ LOAD .BIN ]</button>
-        <span class="pill" id="fileName">файл: —</span>
+        <span class="pill" id="fileName" style="position:absolute;top:calc(100% + 4px);left:0;white-space:nowrap">файл: —</span>
       </span>
       <button id="btnRead" disabled>[ READ ]</button>
       <button id="btnBlank" disabled>[ BLANK? ]</button>
