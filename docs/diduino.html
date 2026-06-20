@@ -66,7 +66,7 @@
 <div class="wrap">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
     <div>
-      <h1>DIDUINO NICHROME <span style="font-size:12px;color:var(--green-dim)">app&nbsp;v0.6.2</span><span class="cur">_</span></h1>
+      <h1>DIDUINO NICHROME <span style="font-size:12px;color:var(--green-dim)">app&nbsp;v0.6.3</span><span class="cur">_</span></h1>
       <div class="sub" data-i18n="sub">Web Serial · прошивка: Diduino_Nichrome.ino · КР556РТ4 (256×4)</div>
     </div>
     <button id="lang" style="padding:6px 12px">EN</button>
@@ -114,6 +114,7 @@
       <button id="btnRead" disabled>[ READ ]</button>
       <button id="btnBlank" disabled>[ BLANK? ]</button>
       <button id="btnSave" disabled>[ SAVE .BIN ]</button>
+      <label style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--green-dim);cursor:pointer"><input type="checkbox" id="hiF"> <span data-i18n="hiF_lbl">старший нибл = F</span></label>
       <button id="btnVerify" disabled>[ VERIFY ]</button>
       <button id="btnBurn" class="danger" disabled>[ BURN ▲ ]</button>
     </div>
@@ -131,8 +132,8 @@
 const $=id=>document.getElementById(id);
 let lang='ru';
 const I18N={
- ru:{sub:'Web Serial · прошивка: Diduino_Nichrome.ino · КР556РТ4 (256×4)',h_conn:'Соединение',h_chip:'Чип · напряжение · параметры прожига',h_ops:'Операции',h_log:'Лог',l_chip:'микросхема',l_level:'уровень p0–p7',l_imp:'Кол-во импульсов',l_len:'Время имп., мкс',l_duty:'Заполнение %',l_soak:'Soak имп.',b_send:'[ ОТПРАВИТЬ НАСТРОЙКИ ]',hint_conn:'Chrome/Edge, открыть локально (file://). Закрой Arduino IDE / DidUino перед CONNECT.',hint_chip:'Напряжение = уровень p0–p7. По умолчанию для РТ4: 1000 имп. / 40 мкс / 10%. BURN берёт эти значения.',hint_ops:'BURN: уровень Vpp p1, загрузи .bin, чип должен быть ЧИСТЫЙ.'},
- en:{sub:'Web Serial · firmware: Diduino_Nichrome.ino · КР556РТ4 (256×4)',h_conn:'Connection',h_chip:'Chip · voltage · burn parameters',h_ops:'Operations',h_log:'Log',l_chip:'chip',l_level:'level p0–p7',l_imp:'Pulses',l_len:'Pulse time, µs',l_duty:'Duty %',l_soak:'Soak pulses',b_send:'[ SEND SETTINGS ]',hint_conn:'Chrome/Edge, open locally (file://). Close Arduino IDE / DidUino before CONNECT.',hint_chip:'Voltage = level p0–p7. RT4 defaults: 1000 pulses / 40 µs / 10%. BURN uses these values.',hint_ops:'BURN: Vpp level p1, load .bin, chip must be BLANK.'}
+ ru:{sub:'Web Serial · прошивка: Diduino_Nichrome.ino · КР556РТ4 (256×4)',h_conn:'Соединение',h_chip:'Чип · напряжение · параметры прожига',h_ops:'Операции',h_log:'Лог',l_chip:'микросхема',l_level:'уровень p0–p7',l_imp:'Кол-во импульсов',l_len:'Время имп., мкс',l_duty:'Заполнение %',l_soak:'Soak имп.',hiF_lbl:'старший нибл = F',b_send:'[ ОТПРАВИТЬ НАСТРОЙКИ ]',hint_conn:'Chrome/Edge, открыть локально (file://). Закрой Arduino IDE / DidUino перед CONNECT.',hint_chip:'Напряжение = уровень p0–p7. По умолчанию для РТ4: 1000 имп. / 40 мкс / 10%. BURN берёт эти значения.',hint_ops:'BURN: уровень Vpp p1, загрузи .bin, чип должен быть ЧИСТЫЙ.'},
+ en:{sub:'Web Serial · firmware: Diduino_Nichrome.ino · КР556РТ4 (256×4)',h_conn:'Connection',h_chip:'Chip · voltage · burn parameters',h_ops:'Operations',h_log:'Log',l_chip:'chip',l_level:'level p0–p7',l_imp:'Pulses',l_len:'Pulse time, µs',l_duty:'Duty %',l_soak:'Soak pulses',hiF_lbl:'high nibble = F',b_send:'[ SEND SETTINGS ]',hint_conn:'Chrome/Edge, open locally (file://). Close Arduino IDE / DidUino before CONNECT.',hint_chip:'Voltage = level p0–p7. RT4 defaults: 1000 pulses / 40 µs / 10%. BURN uses these values.',hint_ops:'BURN: Vpp level p1, load .bin, chip must be BLANK.'}
 };
 function setLang(l){lang=l;document.querySelectorAll('[data-i18n]').forEach(e=>{const k=e.getAttribute('data-i18n');if(I18N[l][k]!==undefined)e.textContent=I18N[l][k];});$('lang').textContent=l==='ru'?'EN':'RU';document.documentElement.lang=l;setFileName();renderHex(hexShown,hexMark);}
 // log-message dictionary (firmware stays an English protocol; the app localises everything the user sees)
@@ -269,8 +270,11 @@ async function verify(){if(!fileData){log(tr('need_bin'),'warn');return;}const d
   $('hexnote').textContent=tr('crc_note_v');
   log(m===0?tr('verify_ok',n):tr('verify_bad',n-m,n,m,f.toString(16).toUpperCase()),m===0?'ok':'err');}
 function saveBin(){if(!chipData){log(tr('nothing_save'),'warn');return;}
-  const blob=new Blob([chipData],{type:'application/octet-stream'});const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);a.download='RT4_dump.bin';a.click();log(tr('saved',chipData.length),'ok');}
+  const hiF=$('hiF')&&$('hiF').checked;
+  const out=new Uint8Array(chipData.length);
+  for(let i=0;i<chipData.length;i++) out[i]=(chipData[i]&0x0F)|(hiF?0xF0:0x00);   // optional high nibble F = BDI file convention (data unchanged)
+  const blob=new Blob([out],{type:'application/octet-stream'});const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download='RT4_dump.bin';a.click();log(tr('saved',out.length),'ok');}
 
 async function burn(){
   if(!fileData){log(tr('need_bin'),'warn');return;}
