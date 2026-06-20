@@ -173,4 +173,4 @@ Co-author: AI.
 
 ## Contributors
 
-- **[pahan4](https://github.com/pahan4)** (Paul Leikam) — ideas behind the in-app firmware update (flashing the Arduino straight from the browser over Web Serial) and the split file ↔ chip verify view.
+- **[pahan4](https://github.com/pahan4)** (Paul Leikam) — ideas behind the in-app firmware update (flashing the Arduino straight from the browser over Web Serial), embedding the firmware into the single HTML page (offline, self-contained), and the split file ↔ chip verify view.
