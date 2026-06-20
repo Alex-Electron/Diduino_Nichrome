@@ -2,6 +2,8 @@
 build/
 *.hex
 *.elf
+# ...but ship the released, version-stamped firmware artifact (fetched by the web app on flash)
+!docs/Diduino_Nichrome_v*.hex
 
 # OS / editor cruft
 .DS_Store

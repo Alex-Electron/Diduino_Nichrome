@@ -14,7 +14,7 @@ This is a continuation of the open **Diduino** project. The hardware is unchange
 ![ui](https://img.shields.io/badge/host-Web%20Serial-1aff80)
 ![fw](https://img.shields.io/badge/firmware-v0.5.1-orange)
 
-**▶ Open the programmer:** <https://alex-electron.github.io/Diduino_Nichrome/diduino.html> — runs in Chrome or Edge, nothing to install. (GitHub Pages serves it over HTTPS, which is what Web Serial needs.)
+**▶ Open the programmer:** <https://alex-electron.github.io/Diduino_Nichrome/diduino_nichrome.html> — runs in Chrome or Edge, nothing to install. (GitHub Pages serves it over HTTPS, which is what Web Serial needs.)
 
 ---
 
@@ -57,10 +57,13 @@ Diduino_Nichrome/
 ├── README.ru.md             # Russian
 ├── LICENSE
 ├── firmware/
-│   └── Diduino_Nichrome/
-│       └── Diduino_Nichrome.ino   # Arduino sketch (the folder name must match the .ino)
+│   ├── Diduino_Nichrome/
+│   │   └── Diduino_Nichrome.ino   # Arduino sketch (the folder name must match the .ino)
+│   └── build-hex.ps1              # rebuilds the per-MCU .hex artifacts below
 └── docs/
-    └── diduino.html         # the browser programmer (served via GitHub Pages over HTTPS)
+    ├── diduino_nichrome.html                    # the browser programmer (served via GitHub Pages over HTTPS)
+    ├── Diduino_Nichrome_v0.5.1_atmega328p.hex   # firmware the app flashes (standard Nano)
+    └── Diduino_Nichrome_v0.5.1_atmega168.hex    # firmware the app flashes (ATmega168 Nano)
 ```
 
 ---
@@ -77,8 +80,8 @@ A Soviet bipolar PROM with nichrome fuse links, 256 words of 4 bits, an analog o
 
 ## Quick start
 
-1. **Flash the firmware.** Open `firmware/Diduino_Nichrome/Diduino_Nichrome.ino` in the Arduino IDE, board = Arduino Nano (ATmega328P), and upload. The board reports its name and version on connect.
-2. **Open the app.** Open the [hosted programmer](https://alex-electron.github.io/Diduino_Nichrome/diduino.html) in Chrome or Edge, or `docs/diduino.html` locally. Click CONNECT and pick the board's COM port. The header confirms the firmware version, and the current Vpp is read automatically.
+1. **Open the app.** Open the [hosted programmer](https://alex-electron.github.io/Diduino_Nichrome/diduino_nichrome.html) in Chrome or Edge (or `docs/diduino_nichrome.html` locally). Click CONNECT and pick the board's COM port.
+2. **Firmware.** If the board isn't running Diduino_Nichrome (or it's too old), the operations stay locked and the app offers **[ ⟳ FLASH NANO ]** — it flashes the firmware straight from the browser over Web Serial (no Arduino IDE), reading the chip signature and picking the build that matches it (ATmega328P or ATmega168). You can instead upload `firmware/Diduino_Nichrome/Diduino_Nichrome.ino` from the Arduino IDE yourself. The header then confirms the firmware version, and the current Vpp is read automatically.
 3. **Read or burn.**
    - `READ` pulls all 256 nibbles and shows them as hex, with a CRC-32.
    - `LOAD` opens a `.bin`; the same hex view and CRC appear for the file.
@@ -165,3 +168,7 @@ BSD 2-Clause. Original copyright by Naumenko Andrew (2021); the Nichrome firmwar
 
 **Alexander Lavrinovich** · <lavrinovich.alex@gmail.com> · [github.com/Alex-Electron](https://github.com/Alex-Electron)
 Co-author: AI.
+
+## Contributors
+
+- **[pahan4](https://github.com/pahan4)** — idea of flashing the Arduino straight from the web browser (the in-app firmware update).

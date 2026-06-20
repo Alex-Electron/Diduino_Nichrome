@@ -46,6 +46,7 @@
   .big{font-size:22px;font-weight:700}
   .label{color:var(--green-dim);font-size:11px;letter-spacing:1px}
   .pill{border:1px solid var(--green-deep);border-radius:20px;padding:6px 12px;font-size:12px}
+  #fw.bad{color:#ff7b7b;border-color:rgba(255,80,80,.7);background:rgba(255,59,59,.22);font-weight:bold;text-shadow:0 0 6px rgba(255,59,59,.9)}  /* wrong/old firmware — same red as mismatched bytes */
   #hex{font-size:17px;line-height:1.35;letter-spacing:1px;white-space:pre;overflow:auto;max-height:600px;
     border:1px solid var(--green-deep);padding:12px;border-radius:4px;background:#020602}
   .ha{color:var(--amber);font-weight:bold;text-shadow:0 0 6px rgba(255,176,0,.5)} /* row address */
@@ -69,7 +70,7 @@
 <div class="wrap">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
     <div>
-      <h1>DIDUINO NICHROME <span style="font-size:12px;color:var(--green-dim)">app&nbsp;v0.6.10</span><span class="cur">_</span></h1>
+      <h1>DIDUINO NICHROME <span style="font-size:12px;color:var(--green-dim)">app&nbsp;v0.7.1</span><span class="cur">_</span></h1>
       <div class="sub" data-i18n="sub">Web Serial · прошивка: Diduino_Nichrome.ino · КР556РТ4 (256×4)</div>
     </div>
     <button id="lang" style="padding:6px 12px">EN</button>
@@ -81,6 +82,7 @@
       <button id="btnDisconnect" disabled>[ DISCONNECT ]</button>
       <span class="stat"><span id="led" class="led"></span><span id="connState" class="label">OFFLINE</span></span>
       <span class="pill" id="fw">fw: —</span>
+      <button id="btnFlash" class="danger" data-i18n="b_flash">[ ⟳ FLASH NANO ]</button>
     </div>
     <div class="hint" data-i18n="hint_conn">Chrome/Edge, открыть локально (file://). Закрой Arduino IDE / DidUino перед CONNECT.</div>
   </div>
@@ -130,7 +132,7 @@
     <div class="hint" data-i18n="hint_ops">BURN: уровень Vpp p1, загрузи .bin, чип должен быть ЧИСТЫЙ.</div>
   </div>
 
-  <div class="panel"><h2>HEX <span id="hexsrc" class="label"></span></h2><div id="hexsum" style="white-space:pre;font-family:'Consolas','Courier New',monospace;font-size:13px;line-height:1.45;color:var(--amber);margin:3px 0"></div><div class="hint" id="hexnote"></div><div id="hex">— нет данных —</div></div>
+  <div class="panel"><h2>HEX <span id="hexsrc" class="label"></span><button id="btnHexView" disabled style="font-size:11px;padding:3px 8px;margin-left:10px;letter-spacing:0">⇄ split view</button></h2><div id="hexsum" style="white-space:pre;font-family:'Consolas','Courier New',monospace;font-size:13px;line-height:1.45;color:var(--amber);margin:3px 0"></div><div class="hint" id="hexnote"></div><div id="hex">— нет данных —</div></div>
   <div class="panel"><h2 data-i18n="h_log">Лог</h2><div id="log"></div></div>
 </div>
 
@@ -139,10 +141,10 @@
 const $=id=>document.getElementById(id);
 let lang='ru';
 const I18N={
- ru:{sub:'Web Serial · прошивка: Diduino_Nichrome.ino · КР556РТ4 (256×4)',h_conn:'Соединение',h_chip:'Чип · напряжение · параметры прожига',h_ops:'Операции',h_log:'Лог',l_chip:'микросхема',l_level:'уровень p0–p7',l_imp:'Кол-во импульсов',l_len:'Время имп., мкс',l_duty:'Заполнение %',l_soak:'Soak имп.',hiF_lbl:'старший нибл = F',b_send:'[ ОТПРАВИТЬ НАСТРОЙКИ ]',hint_conn:'Chrome/Edge, открыть локально (file://). Закрой Arduino IDE / DidUino перед CONNECT.',hint_chip:'Напряжение = уровень p0–p7. По умолчанию для РТ4: 1000 имп. / 40 мкс / 10%. BURN берёт эти значения.',hint_ops:'BURN: уровень Vpp p1, загрузи .bin, чип должен быть ЧИСТЫЙ.'},
- en:{sub:'Web Serial · firmware: Diduino_Nichrome.ino · КР556РТ4 (256×4)',h_conn:'Connection',h_chip:'Chip · voltage · burn parameters',h_ops:'Operations',h_log:'Log',l_chip:'chip',l_level:'level p0–p7',l_imp:'Pulses',l_len:'Pulse time, µs',l_duty:'Duty %',l_soak:'Soak pulses',hiF_lbl:'high nibble = F',b_send:'[ SEND SETTINGS ]',hint_conn:'Chrome/Edge, open locally (file://). Close Arduino IDE / DidUino before CONNECT.',hint_chip:'Voltage = level p0–p7. RT4 defaults: 1000 pulses / 40 µs / 10%. BURN uses these values.',hint_ops:'BURN: Vpp level p1, load .bin, chip must be BLANK.'}
+ ru:{sub:'Web Serial · прошивка: Diduino_Nichrome.ino · КР556РТ4 (256×4)',h_conn:'Соединение',h_chip:'Чип · напряжение · параметры прожига',h_ops:'Операции',h_log:'Лог',l_chip:'микросхема',l_level:'уровень p0–p7',l_imp:'Кол-во импульсов',l_len:'Время имп., мкс',l_duty:'Заполнение %',l_soak:'Soak имп.',hiF_lbl:'старший нибл = F',b_send:'[ ОТПРАВИТЬ НАСТРОЙКИ ]',b_flash:'[ ⟳ FLASH NANO ]',hint_conn:'Chrome/Edge, открыть локально (file://). Закрой Arduino IDE / DidUino перед CONNECT.',hint_chip:'Напряжение = уровень p0–p7. По умолчанию для РТ4: 1000 имп. / 40 мкс / 10%. BURN берёт эти значения.',hint_ops:'BURN: уровень Vpp p1, загрузи .bin, чип должен быть ЧИСТЫЙ.'},
+ en:{sub:'Web Serial · firmware: Diduino_Nichrome.ino · КР556РТ4 (256×4)',h_conn:'Connection',h_chip:'Chip · voltage · burn parameters',h_ops:'Operations',h_log:'Log',l_chip:'chip',l_level:'level p0–p7',l_imp:'Pulses',l_len:'Pulse time, µs',l_duty:'Duty %',l_soak:'Soak pulses',hiF_lbl:'high nibble = F',b_send:'[ SEND SETTINGS ]',b_flash:'[ ⟳ FLASH NANO ]',hint_conn:'Chrome/Edge, open locally (file://). Close Arduino IDE / DidUino before CONNECT.',hint_chip:'Voltage = level p0–p7. RT4 defaults: 1000 pulses / 40 µs / 10%. BURN uses these values.',hint_ops:'BURN: Vpp level p1, load .bin, chip must be BLANK.'}
 };
-function setLang(l){lang=l;document.querySelectorAll('[data-i18n]').forEach(e=>{const k=e.getAttribute('data-i18n');if(I18N[l][k]!==undefined)e.textContent=I18N[l][k];});$('lang').textContent=l==='ru'?'EN':'RU';document.documentElement.lang=l;setFileName();renderHex(hexShown,hexMark);}
+function setLang(l){lang=l;document.querySelectorAll('[data-i18n]').forEach(e=>{const k=e.getAttribute('data-i18n');if(I18N[l][k]!==undefined)e.textContent=I18N[l][k];});$('lang').textContent=l==='ru'?'EN':'RU';document.documentElement.lang=l;setFileName();if(verifyActive)showVerify();else renderHex(hexShown,hexMark);}
 // log-message dictionary (firmware stays an English protocol; the app localises everything the user sees)
 const MSG={
  ru:{port_open:'порт открыт, сброс Arduino…',fw_bad:'⚠ баннер не Diduino_Nichrome — залей Diduino_Nichrome.ino',fw_need:'нужна Diduino_Nichrome.ino',fw_old:(v,min)=>'⚠ прошивка Nichrome v'+v+' устарела — нужна ≥ '+min+'. Прожиг заблокирован.',fw_block:(min)=>'прожиг заблокирован: нужна прошивка Nichrome ≥ '+min,connected:'подключено',
@@ -157,7 +159,16 @@ const MSG={
   crc_ok:m=>`✓ CRC-32 (4 бита) совпала (${m}) — передача без ошибок`,burn_ok:'*** ПРОЖИГ УСПЕШЕН (сверка на плате) ***',burn_err:'*** ПРОЖИГ С ОШИБКАМИ — см. лог ***',
   burn_prog:(a,n)=>`прожиг ${a}/${n}…`,burn_verf:(a,n)=>`сверка ${a}/${n}…`,burn_wait:'жду ответа платы…',
   loaded:(nm,n)=>'загружен '+nm+', '+n+' б',short_file:n=>'⚠ файл короче '+n,ready:'готов. CONNECT → операции.',proto:'протокол: v · p<n> · I/L/D · R · B · s',
-  file_none:'файл: —',fpill:(nm,n)=>'файл: '+nm+' ('+n+'б)',hex_none:'— нет данных —',src_file:'· показан ФАЙЛ',src_chip:'· показан ЧИП',crc1:s=>'· CRC-32: '+s,crc2:(d,r)=>'· CRC-32 (4 бита): '+d+' · сырой файл: '+r,crc_note:'РТ4 = 4 бита/ячейку: «4 бита» — данные на чипе (сверяй с ним), «сырой файл» — все 8 бит файла (как CRC сторонней утилиты по байтам)',crc_cmp:(ff,cc,ok)=>'· файл (4 бита): '+ff+' · чип: '+cc+(ok?' ✓ совпало':' ✗ расхождение'),crc_note_v:'сверка по 4 битам данных (старший нибл на чипе отсутствует)',l_raw:'сырой файл',l_f4:'файл (4 бита)',l_chip2:'чип',tt_mism:(a,w,g)=>'@0x'+a+': ждали 0x'+w+', на чипе 0x'+g},
+  fw_press_flash:v=>'⛔ операции заблокированы. Нажми [ ⟳ FLASH NANO ], чтобы обновить прошивку платы до Diduino_Nichrome v'+v+'.',
+  flash_reok:v=>'Прошивка платы в порядке. Перепрошить Diduino_Nichrome v'+v+' всё равно?',
+  flash_start:v=>'═══ ПРОШИВКА NANO: Diduino_Nichrome v'+v+' ═══',
+  flash_hexget:'получаю .hex…',flash_hexfetch:(u,n)=>'.hex по fetch ('+u+'): '+n+' б',flash_pickfirst:'file:// — выбери .hex под свою плату (MCU указан в имени; сверю с сигнатурой чипа)',flash_hexpicked:(nm,n)=>'.hex выбран: '+nm+' ('+n+' б)',flash_hexfail:'.hex не выбран — отмена',
+  flash_sig:(c,b)=>'чип: '+c+' (сигнатура '+b+')',flash_unsupported:c=>'чип '+c+' не поддерживается — нет прошивки под него (нужен ATmega328P или ATmega168)',flash_mismatch:(p,c,need)=>'выбран .hex под '+p+', а на плате '+c+' — возьми '+need,flash_toobig:(n,m)=>'образ '+n+' б не влезает ('+m+' б доступно) — отмена',
+  flash_image:(b,p)=>'образ прошивки: '+b+' б ('+p+' страниц по 128)',
+  flash_detect:'── определение бутлоадера ──',flash_try:b=>'• пробую '+b+' бод…',flash_reset:'  reset платы (DTR/RTS)…',flash_syncN:(i,t)=>'  sync-запрос '+i+'/'+t+' (GET_SYNC 0x30)…',flash_syncresp:r=>'  ответ: '+r,flash_synced:b=>'✓ бутлоадер отвечает @ '+b+' бод (STK500v1)',flash_nosyncbaud:b=>'  нет sync @ '+b+' бод',flash_nosync:'✗ бутлоадер не отвечает на 115200/57600/19200 — проверь плату/кабель, закрой Arduino IDE',
+  flash_resync:'  .hex получен — повторный sync перед записью…',flash_enter:'вход в режим программирования…',flash_prog:(a,n)=>'запись flash '+a+'/'+n+' б…',flash_verf:(a,n)=>'сверка flash '+a+'/'+n+' б…',flash_verr:a=>'✗ сверка не сошлась @ 0x'+a,flash_leave:'выход из режима программирования, перезапуск…',
+  flash_ok:'*** ПРОШИВКА УСПЕШНА ***',flash_fail:e=>'*** ОШИБКА ПРОШИВКИ: '+e+' ***',flash_reboot:'перезапуск платы, чтение баннера…',
+  file_none:'файл: —',fpill:(nm,n)=>'файл: '+nm+' ('+n+'б)',hex_none:'— нет данных —',src_file:'· показан ФАЙЛ',src_chip:'· показан ЧИП',src_split:'· ФАЙЛ ↔ ЧИП',crc1:s=>'· CRC-32: '+s,crc2:(d,r)=>'· CRC-32 (4 бита): '+d+' · сырой файл: '+r,crc_note:'РТ4 = 4 бита/ячейку: «4 бита» — данные на чипе (сверяй с ним), «сырой файл» — все 8 бит файла (как CRC сторонней утилиты по байтам)',crc_cmp:(ff,cc,ok)=>'· файл (4 бита): '+ff+' · чип: '+cc+(ok?' ✓ совпало':' ✗ расхождение'),crc_note_v:'сверка по 4 битам данных (старший нибл на чипе отсутствует)',l_raw:'сырой файл',l_f4:'файл (4 бита)',l_chip2:'чип',tt_mism:(a,w,g)=>'@0x'+a+': ждали 0x'+w+', на чипе 0x'+g},
  en:{port_open:'port open, resetting Arduino…',fw_bad:'⚠ banner is not Diduino_Nichrome — flash Diduino_Nichrome.ino',fw_need:'need Diduino_Nichrome.ino',fw_old:(v,min)=>'⚠ Nichrome firmware v'+v+' is too old — need ≥ '+min+'. Burn disabled.',fw_block:(min)=>'burn blocked: need Nichrome firmware ≥ '+min,connected:'connected',
   conn_fail:e=>'connect failed: '+e,disconnected:'disconnected',no_ws:'Web Serial unavailable — use Chrome/Edge',
   volt:v=>'Vpp = '+v+' V',no_v:'no reply to v',settings:p=>`settings: pulses=${p.imp} t=${p.len}us duty=${p.duty}% soak=${p.soak} p${p.lvl}`,
@@ -170,15 +181,30 @@ const MSG={
   crc_ok:m=>`✓ CRC-32 (4-bit) match (${m}) — transfer OK`,burn_ok:'*** BURN SUCCESS (verified on board) ***',burn_err:'*** BURN HAD ERRORS — see log ***',
   burn_prog:(a,n)=>`programming ${a}/${n}…`,burn_verf:(a,n)=>`verifying ${a}/${n}…`,burn_wait:'waiting for board…',
   loaded:(nm,n)=>'loaded '+nm+', '+n+' B',short_file:n=>'⚠ file shorter than '+n,ready:'ready. CONNECT → operations.',proto:'protocol: v · p<n> · I/L/D · R · B · s',
-  file_none:'file: —',fpill:(nm,n)=>'file: '+nm+' ('+n+' B)',hex_none:'— no data —',src_file:'· showing FILE',src_chip:'· showing CHIP',crc1:s=>'· CRC-32: '+s,crc2:(d,r)=>'· CRC-32 (4-bit): '+d+' · raw file: '+r,crc_note:'RT4 = 4 bits/cell: «4-bit» is the data on the chip (compare with it), «raw file» is all 8 bits of the file (what an external tool CRCs over bytes)',crc_cmp:(ff,cc,ok)=>'· file (4-bit): '+ff+' · chip: '+cc+(ok?' ✓ match':' ✗ differ'),crc_note_v:'compared over the 4-bit data (high nibble is not present on the chip)',l_raw:'raw file',l_f4:'file (4-bit)',l_chip2:'chip',tt_mism:(a,w,g)=>'@0x'+a+': expected 0x'+w+', chip 0x'+g}
+  fw_press_flash:v=>'⛔ operations blocked. Press [ ⟳ FLASH NANO ] to update the board firmware to Diduino_Nichrome v'+v+'.',
+  flash_reok:v=>'Board firmware is fine. Re-flash Diduino_Nichrome v'+v+' anyway?',
+  flash_start:v=>'═══ FLASHING NANO: Diduino_Nichrome v'+v+' ═══',
+  flash_hexget:'fetching .hex…',flash_hexfetch:(u,n)=>'.hex via fetch ('+u+'): '+n+' B',flash_pickfirst:'file:// — pick the .hex for your board (MCU is in the name; checked against the chip signature)',flash_hexpicked:(nm,n)=>'.hex picked: '+nm+' ('+n+' B)',flash_hexfail:'no .hex selected — aborted',
+  flash_sig:(c,b)=>'chip: '+c+' (signature '+b+')',flash_unsupported:c=>'chip '+c+' not supported — no firmware for it (need ATmega328P or ATmega168)',flash_mismatch:(p,c,need)=>'picked a '+p+' .hex but the board is '+c+' — use '+need,flash_toobig:(n,m)=>'image '+n+' B does not fit ('+m+' B available) — aborted',
+  flash_image:(b,p)=>'firmware image: '+b+' B ('+p+' pages of 128)',
+  flash_detect:'── bootloader detection ──',flash_try:b=>'• trying '+b+' baud…',flash_reset:'  resetting board (DTR/RTS)…',flash_syncN:(i,t)=>'  sync request '+i+'/'+t+' (GET_SYNC 0x30)…',flash_syncresp:r=>'  reply: '+r,flash_synced:b=>'✓ bootloader responds @ '+b+' baud (STK500v1)',flash_nosyncbaud:b=>'  no sync @ '+b+' baud',flash_nosync:'✗ no bootloader response at 115200/57600/19200 — check board/cable, close Arduino IDE',
+  flash_resync:'  .hex fetched — re-syncing before write…',flash_enter:'entering programming mode…',flash_prog:(a,n)=>'writing flash '+a+'/'+n+' B…',flash_verf:(a,n)=>'verifying flash '+a+'/'+n+' B…',flash_verr:a=>'✗ verify mismatch @ 0x'+a,flash_leave:'leaving programming mode, restarting…',
+  flash_ok:'*** FLASH SUCCESS ***',flash_fail:e=>'*** FLASH FAILED: '+e+' ***',flash_reboot:'rebooting board, reading banner…',
+  file_none:'file: —',fpill:(nm,n)=>'file: '+nm+' ('+n+' B)',hex_none:'— no data —',src_file:'· showing FILE',src_chip:'· showing CHIP',src_split:'· FILE ↔ CHIP',crc1:s=>'· CRC-32: '+s,crc2:(d,r)=>'· CRC-32 (4-bit): '+d+' · raw file: '+r,crc_note:'RT4 = 4 bits/cell: «4-bit» is the data on the chip (compare with it), «raw file» is all 8 bits of the file (what an external tool CRCs over bytes)',crc_cmp:(ff,cc,ok)=>'· file (4-bit): '+ff+' · chip: '+cc+(ok?' ✓ match':' ✗ differ'),crc_note_v:'compared over the 4-bit data (high nibble is not present on the chip)',l_raw:'raw file',l_f4:'file (4-bit)',l_chip2:'chip',tt_mism:(a,w,g)=>'@0x'+a+': expected 0x'+w+', chip 0x'+g}
 };
 function tr(k,...a){let d=MSG[lang]||MSG.ru,m=d[k];if(m===undefined)m=MSG.ru[k];if(m===undefined)return k;return typeof m==='function'?m(...a):m;}
 const RT4={cmd:'h',size:256,bits:4};   // только КР556РТ4
 let port=null,writer=null,reader=null,keepReading=false,rxq=[];
 let fwOk=false;                           // firmware confirmed = Nichrome AND >= MIN_FW
 const MIN_FW='0.5.1';                      // app protocol (Y+CRC gate #9, PROG/VERF progress) requires this
+const FW_VER='0.5.1';                      // firmware version this app ships .hex files for (web-flash)
+// per-MCU artifacts committed next to this page; the flasher reads the chip signature and picks the match.
+const hexNameFor=mcu=>'Diduino_Nichrome_v'+FW_VER+'_'+mcu+'.hex';
+const SIG_MCU={'1e950f':'atmega328p','1e9514':'atmega328p','1e9406':'atmega168','1e940b':'atmega168'};  // full signature → our hex
+const SIG_NAME={'1e950f':'ATmega328P','1e9514':'ATmega328','1e9406':'ATmega168','1e940b':'ATmega168PA','1e9307':'ATmega8','1e930a':'ATmega88','1e930f':'ATmega88PA'};  // for the log only
 function vge(a,b){const p=String(a).split('.').map(Number),q=String(b).split('.').map(Number);for(let i=0;i<3;i++){const x=p[i]||0,y=q[i]||0;if(x>y)return true;if(x<y)return false;}return true;}
 let loadedName='',hexShown=null,hexMark=false;
+let verifySplit=false,verifyActive=false;   // verify view: split (file|chip) vs single grid; whether a verify result is on screen
 let fileData=null,chipData=null;
 const chip=()=>RT4;
 const mask=v=>(v&0x0F);
@@ -220,31 +246,240 @@ async function readBurnResult(to=180000){
   return done;
 }
 
+function startSerialIO(){ writer=port.writable.getWriter();reader=port.readable.getReader();keepReading=true;rxq=[];readLoop(); }
+function drainBanner(){ const b=new TextDecoder().decode(new Uint8Array(rxq.splice(0,rxq.length))); log('BANNER: '+b.replace(/\r?\n/g,' | ').trim()); return b; }
+// classify the banner: is it Nichrome at all, and is its version >= the required minimum?
+// sets fwOk, paints the pill (red when bad/old, like a mismatched byte) and tells the user to flash.
+function detectFirmware(b){
+  const vm=b.match(/NICHROME v([\d.]+)/);
+  const isNi=b.includes('NICHROME'), ver=vm?vm[1]:null;
+  const verOk = ver!=null && vge(ver,MIN_FW);           // version gate: must be >= MIN_FW
+  fwOk = isNi && verOk;                                  // accept only Nichrome AND a high-enough version
+  if(fwOk){ $('fw').textContent='fw: Nichrome v'+ver+' ✓'; }
+  else if(isNi){ $('fw').textContent='fw: Nichrome v'+(ver||'?')+' ⚠ <'+MIN_FW; log(tr('fw_old',ver||'?',MIN_FW),'err'); }
+  else { $('fw').textContent='fw: ? '+tr('fw_need'); log(tr('fw_bad'),'err'); }
+  $('fw').classList.toggle('bad',!fwOk);                 // red pill when wrong/old
+  if(!fwOk) log(tr('fw_press_flash',FW_VER),'warn');     // operations are blocked → instruct, don't auto-flash
+  return {ok:fwOk,isNi,ver};
+}
+
 async function connect(){
   if(!('serial'in navigator)){log(tr('no_ws'),'err');return;}
   try{
     port=await navigator.serial.requestPort();
     await port.open({baudRate:115200});
-    writer=port.writable.getWriter();reader=port.readable.getReader();
-    keepReading=true;rxq=[];readLoop();
+    startSerialIO();
     log(tr('port_open'));await sleep(2600);
-    const b=new TextDecoder().decode(new Uint8Array(rxq.splice(0,rxq.length)));
-    log('BANNER: '+b.replace(/\r?\n/g,' | ').trim());
-    const vm=b.match(/NICHROME v([\d.]+)/);
-    const isNi=b.includes('NICHROME'), ver=vm?vm[1]:null;
-    fwOk = isNi && ver!=null && vge(ver,MIN_FW);          // require Nichrome AND >= MIN_FW
-    if(fwOk){ $('fw').textContent='fw: Nichrome v'+ver+' ✓'; }
-    else if(isNi){ $('fw').textContent='fw: Nichrome v'+(ver||'?')+' ⚠ <'+MIN_FW; log(tr('fw_old',ver||'?',MIN_FW),'err'); }
-    else { $('fw').textContent='fw: ? '+tr('fw_need'); log(tr('fw_bad'),'err'); }
-    setOnline(true);log(tr('connected'),'ok');
-    updateOps();
-    if(fwOk) await readVoltage();   // auto-read Vpp once firmware confirmed
+    const fw=detectFirmware(drainBanner());
+    setOnline(true);log(tr('connected'),'ok');   // setOnline → updateOps gates every operation on fwOk
+    if(fw.ok) await readVoltage();  // auto-read Vpp once firmware confirmed; if not, ops stay blocked
   }catch(e){log(tr('conn_fail',e),'err');}
 }
 async function disconnect(){keepReading=false;try{await reader.cancel();reader.releaseLock();}catch(e){}try{writer.releaseLock();}catch(e){}try{await port.close();}catch(e){}port=writer=reader=null;fwOk=false;setOnline(false);updateOps();log(tr('disconnected'));}
 function setOnline(on){$('led').classList.toggle('on',on);$('connState').textContent=on?'ONLINE':'OFFLINE';
   $('btnConnect').disabled=on;$('btnDisconnect').disabled=!on;
-  for(const id of['btnVolt','btnRead','btnBlank','btnSet'])$(id).disabled=!on;updateOps();}
+  $('btnFlash').disabled=false;        // flashing is always available (offline → requests a port itself)
+  updateOps();}
+
+/* ───────────────── Web-Serial Arduino-Nano flasher (STK500v1, no deps) ─────────────────
+   Reuses the session reader/writer/rxq. Reopens the port to probe bootloader bauds, drives
+   the STK500v1 protocol byte-by-byte, verifies by read-back, then restores the normal 115200
+   session and re-reads the banner. Works on GitHub Pages (fetch .hex) and file:// (manual pick). */
+const STK={OK:0x10,INSYNC:0x14,EOP:0x20,GET_SYNC:0x30,SET_DEVICE:0x42,ENTER:0x50,LEAVE:0x51,LOAD_ADDR:0x55,PROG_PAGE:0x64,READ_PAGE:0x74,READ_SIGN:0x75};
+const FLASH_PAGE=128;   // ATmega328P flash page (bytes)
+
+// reopen the same port at a new baud and restart the read loop (used to probe bootloader bauds)
+async function reopenPort(baud){
+  keepReading=false;
+  try{await reader.cancel();}catch(e){} try{reader.releaseLock();}catch(e){}
+  try{writer.releaseLock();}catch(e){}
+  try{await port.close();}catch(e){}
+  await port.open({baudRate:baud});
+  startSerialIO();
+}
+
+// open the OS file dialog and return {text,name} of the chosen .hex (or null if cancelled)
+function pickHex(){
+  return new Promise(res=>{
+    const inp=document.createElement('input'); inp.type='file'; inp.accept='.hex';
+    inp.onchange=()=>{ const f=inp.files[0]; if(!f){res(null);return;} const fr=new FileReader();
+      fr.onload=()=>res({text:fr.result,name:f.name}); fr.readAsText(f); };
+    inp.oncancel=()=>res(null); inp.click();
+  });
+}
+const mcuFromName=name=>{ const m=String(name).toLowerCase().match(/_(atmega\w+)\.hex$/); return m?m[1]:null; };  // MCU tag in our file names
+const flashMax=mcu=>mcu==='atmega168'?14336:30720;   // app space left by the bootloader (16K/32K minus bootloader)
+
+// Intel-HEX → flat flash image (unwritten bytes = 0xFF, padded to a full page)
+function parseIntelHex(text){
+  const out=[]; let base=0;
+  for(const raw of text.split(/\r?\n/)){ const ln=raw.trim(); if(ln[0]!==':')continue;
+    const len=parseInt(ln.substr(1,2),16), addr=parseInt(ln.substr(3,4),16), type=parseInt(ln.substr(7,2),16);
+    if(type===0x01)break;                                                // EOF
+    if(type===0x04){ base=parseInt(ln.substr(9,4),16)<<16; continue; }    // ext linear addr
+    if(type===0x02){ base=parseInt(ln.substr(9,4),16)<<4;  continue; }    // ext segment addr
+    if(type!==0x00)continue;
+    for(let i=0;i<len;i++) out[base+addr+i]=parseInt(ln.substr(9+i*2,2),16);
+  }
+  const size=Math.ceil(out.length/FLASH_PAGE)*FLASH_PAGE;
+  const u8=new Uint8Array(size).fill(0xFF);
+  for(let i=0;i<out.length;i++) if(out[i]!==undefined) u8[i]=out[i];
+  return u8;
+}
+
+// one STK500 command: append CRC_EOP, expect INSYNC ...[payload]... OK; returns the payload bytes
+async function stkCmd(bytes,payloadLen=0,to=3000){
+  flushRx();
+  await sendBytes(Uint8Array.from([...bytes,STK.EOP]));
+  const r=await readExactly(2+payloadLen,to);
+  if(r[0]!==STK.INSYNC) throw new Error('no INSYNC (0x'+r[0].toString(16)+')');
+  if(r[r.length-1]!==STK.OK) throw new Error('no OK (0x'+r[r.length-1].toString(16)+')');
+  return r.slice(1,1+payloadLen);
+}
+
+// reset into the bootloader by pulsing DTR/RTS (auto-reset cap)
+async function pulseReset(){
+  log(tr('flash_reset'));
+  try{
+    await port.setSignals({dataTerminalReady:false,requestToSend:false}); await sleep(120);
+    await port.setSignals({dataTerminalReady:true ,requestToSend:true }); await sleep(60);
+    await port.setSignals({dataTerminalReady:false,requestToSend:false}); await sleep(60);
+  }catch(e){ /* setSignals unsupported — many adapters still auto-reset on open */ }
+}
+
+// hand-shake with the bootloader at the current baud; verbose (logs every step), returns true on sync
+async function stkTrySync(baud,tries=6){
+  await pulseReset();
+  for(let i=1;i<=tries;i++){
+    log(tr('flash_syncN',i,tries));
+    flushRx();
+    try{ await sendBytes(Uint8Array.from([STK.GET_SYNC,STK.EOP])); }catch(e){}
+    try{
+      const r=await readExactly(2,350);
+      log(tr('flash_syncresp','0x'+r[0].toString(16).padStart(2,'0')+' 0x'+r[1].toString(16).padStart(2,'0')));
+      if(r[0]===STK.INSYNC&&r[1]===STK.OK){ log(tr('flash_synced',baud),'ok'); return true; }
+    }catch(e){ /* timeout → retry */ }
+  }
+  log(tr('flash_nosyncbaud',baud),'warn');
+  return false;
+}
+
+// enter programming mode (SET_DEVICE is ignored by optiboot / used by legacy ATmegaBOOT — non-fatal)
+async function stkEnter(){
+  log(tr('flash_enter'));
+  try{ await stkCmd([STK.SET_DEVICE,0x86,0,0,1,1,1,1,3,0xff,0xff,0xff,0xff,0,0x80,4,0,0,0,0x80,0]); }catch(e){ log('SET_DEVICE skipped: '+e,'t'); }
+  await stkCmd([STK.ENTER]);
+}
+// read the 3-byte chip signature (e.g. 1E 95 0F = ATmega328P)
+async function stkReadSig(){ return await stkCmd([STK.READ_SIGN],3); }
+async function stkLeave(){ try{ await stkCmd([STK.LEAVE]); }catch(e){} }
+
+// program + read-back verify the image (must already be in programming mode)
+async function stkWriteVerify(img){
+  const n=img.length;
+  for(let a=0;a<n;a+=FLASH_PAGE){
+    const w=a>>1, chunk=img.subarray(a,a+FLASH_PAGE), len=chunk.length;
+    await stkCmd([STK.LOAD_ADDR,w&0xff,(w>>8)&0xff]);
+    await stkCmd([STK.PROG_PAGE,(len>>8)&0xff,len&0xff,0x46,...chunk]);   // 0x46='F' (flash)
+    $('barfill').style.width=Math.round(Math.min(a+len,n)/n*50)+'%';
+    if((a&0x3FF)===0||a+FLASH_PAGE>=n) log(tr('flash_prog',Math.min(a+len,n),n));
+  }
+  for(let a=0;a<n;a+=FLASH_PAGE){
+    const w=a>>1, len=Math.min(FLASH_PAGE,n-a);
+    await stkCmd([STK.LOAD_ADDR,w&0xff,(w>>8)&0xff]);
+    const got=await stkCmd([STK.READ_PAGE,(len>>8)&0xff,len&0xff,0x46],len);
+    for(let i=0;i<len;i++) if(got[i]!==img[a+i]) throw new Error(tr('flash_verr',(a+i).toString(16).toUpperCase()));
+    $('barfill').style.width=(50+Math.round(Math.min(a+len,n)/n*50))+'%';
+    if((a&0x3FF)===0||a+FLASH_PAGE>=n) log(tr('flash_verf',Math.min(a+len,n),n));
+  }
+}
+
+async function flashNano(){
+  if(fwOk && !confirm(tr('flash_reok',FW_VER))) return;   // guard accidental re-flash of an already-good board
+  const fileMode = location.protocol==='file:';   // on file:// fetch is blocked → must pick the .hex manually
+
+  // On file:// the picker must open while the click gesture is fresh — i.e. BEFORE the multi-second
+  // bootloader probe, which would expire it. So pick first; the MCU in the file name is checked
+  // against the chip signature before anything is written. On http(s) we fetch the match later, no dialog.
+  let pickedText=null, pickedMcu=null;
+  if(fileMode){
+    log(tr('flash_pickfirst'),'warn');
+    const picked=await pickHex();
+    if(!picked){ log(tr('flash_hexfail'),'err'); return; }
+    pickedText=picked.text; pickedMcu=mcuFromName(picked.name);
+    log(tr('flash_hexpicked',picked.name,picked.text.length),'ok');
+  }
+
+  // grab a port (offline → request one; the file selection above keeps the gesture alive on file://)
+  if(!port){
+    if(!('serial'in navigator)){ log(tr('no_ws'),'err'); return; }
+    try{ port=await navigator.serial.requestPort(); await port.open({baudRate:115200}); startSerialIO(); setOnline(true); }
+    catch(e){ log(tr('conn_fail',e),'err'); return; }
+  }
+
+  log(tr('flash_start',FW_VER),'warn');
+  $('btnFlash').disabled=true; setBL('FLASH…'); $('barfill').style.width='0';
+  let okBaud=null, entered=false;
+  try{
+    // 1) find the bootloader baud (verbose)
+    log(tr('flash_detect'));
+    for(const baud of [115200,57600,19200]){   // 115200=optiboot, 57600=ATmegaBOOT-328, 19200=ATmegaBOOT-168
+      log(tr('flash_try',baud));
+      await reopenPort(baud);
+      if(await stkTrySync(baud)){ okBaud=baud; break; }
+    }
+    if(okBaud===null){ log(tr('flash_nosync'),'err'); return; }
+
+    // 2) read the chip signature → pick the matching firmware
+    await stkEnter(); entered=true;
+    const sig=await stkReadSig();
+    const sigHex=[...sig].map(x=>x.toString(16).padStart(2,'0')).join('');
+    const chipName=SIG_NAME[sigHex]||('? '+sigHex), mcu=SIG_MCU[sigHex];
+    log(tr('flash_sig',chipName,[...sig].map(x=>'0x'+x.toString(16).padStart(2,'0')).join(' ')), mcu?'ok':'err');
+    if(!mcu) throw new Error(tr('flash_unsupported',chipName));
+
+    // 3) obtain the image that matches the chip
+    let img;
+    if(fileMode){
+      if(pickedMcu && pickedMcu!==mcu) throw new Error(tr('flash_mismatch',pickedMcu,chipName,hexNameFor(mcu)));
+      img=parseIntelHex(pickedText);
+    }else{
+      const name=hexNameFor(mcu);
+      log(tr('flash_hexget')+' '+name);
+      const r=await fetch(name,{cache:'no-store'});
+      if(!r.ok) throw new Error('fetch '+name+' → '+r.status);
+      const t=await r.text(); if(!t.includes(':')) throw new Error('bad .hex '+name);
+      log(tr('flash_hexfetch',name,t.length),'ok');
+      img=parseIntelHex(t);
+    }
+    log(tr('flash_image',img.length,img.length/FLASH_PAGE));
+    if(img.length>flashMax(mcu)) throw new Error(tr('flash_toobig',img.length,flashMax(mcu)));
+
+    // 4) a network fetch can outlast the bootloader's idle watchdog (~1s) → re-sync so the write
+    //    runs with no idle gap. file:// has the image in RAM already (no gap), so no re-sync needed.
+    if(!fileMode){
+      log(tr('flash_resync'));
+      await reopenPort(okBaud);
+      if(!await stkTrySync(okBaud)) throw new Error(tr('flash_nosync'));
+      await stkEnter();
+    }
+
+    // 5) write + read-back verify
+    await stkWriteVerify(img);
+    $('barfill').style.width='100%';
+    log(tr('flash_ok'),'ok');
+  }catch(e){
+    log(tr('flash_fail',e.message||e),'err');
+  }finally{
+    if(entered){ log(tr('flash_leave')); await stkLeave(); }
+    // restore the normal 115200 session and re-read the banner, whatever happened
+    log(tr('flash_reboot'));
+    try{ await reopenPort(115200); await sleep(2600); detectFirmware(drainBanner()); }catch(e){ log(tr('conn_fail',e),'err'); }
+    setBL(''); setTimeout(()=>$('barfill').style.width='0',1500);
+    setOnline(true); updateOps();
+    if(fwOk) await readVoltage();
+  }
+}
 
 async function selectChip(){/* Nichrome: РТ4 жёстко зашит, выбор не нужен */}
 async function readVoltage(){flushRx();await send('v\n');const t=await readTextUntil(['Vpp='],2500);const m=t.match(/Vpp=([\d.]+)/);if(m){$('volt').textContent=m[1];log(tr('volt',m[1]),'ok');}else log(tr('no_v'),'warn');}
@@ -263,18 +498,41 @@ async function readChip(){
   const n=chip().size;log(tr('reading',n));
   flushRx();await send('R\n');
   try{const bytes=await readExactly(n,Math.max(8000,n*40));
-    chipData=new Uint8Array(bytes.map(mask));renderHex(chipData);
+    chipData=new Uint8Array(bytes.map(mask));setVerifyView(false);renderHex(chipData);
     const nz=chipData.filter(x=>x!==0).length;
     log(tr('read_done',n,nz),'ok');updateOps();return chipData;
   }catch(e){log(tr('read_err',e),'err');return null;}
 }
 async function blankCheck(){const d=await readChip();if(!d)return;const nz=d.filter(x=>x!==0).length;
   log(nz===0?tr('blank_ok'):tr('blank_no',nz),nz===0?'ok':'warn');}
-async function verify(){if(!fileData){log(tr('need_bin'),'warn');return;}const d=await readChip();if(!d)return;
-  let m=0,f=-1;const n=chip().size;for(let i=0;i<n;i++)if(d[i]!==mask(fileData[i]||0)){m++;if(f<0)f=i;}
-  renderHex(chipData,true);
-  $('hexsum').textContent=crcLine('l_raw',hx8(crc32(fileData,n,false)))+'\n'+crcLine('l_f4',hx8(crc32(fileData,n,true)))+'\n'+crcLine('l_chip2',hx8(crc32(chipData,n,true)))+(m===0?'  ✓':'  ✗');   // raw file on top, file(4-bit) above chip for eye-compare (CRC-32 label is in the HEX header)
+function setVerifyView(active){ verifyActive=active; $('btnHexView').disabled=!active; }   // toggle always visible, enabled only with a verify result
+// (re)render the current verify result in the chosen view, refresh the CRC block; returns {m,f,n}
+function showVerify(){
+  const n=chip().size; let m=0,f=-1;
+  for(let i=0;i<n;i++) if(chipData[i]!==mask(fileData[i]||0)){m++;if(f<0)f=i;}
+  if(verifySplit) renderHexSplit(); else renderHex(chipData,true);
+  $('hexsrc').textContent=(verifySplit?tr('src_split'):tr('src_chip'))+' · CRC-32';
+  $('hexsum').textContent=crcLine('l_raw',hx8(crc32(fileData,n,false)))+'\n'+crcLine('l_f4',hx8(crc32(fileData,n,true)))+'\n'+crcLine('l_chip2',hx8(crc32(chipData,n,true)))+(m===0?'  ✓':'  ✗');
   $('hexnote').textContent=tr('crc_note_v');
+  return {m,f,n};
+}
+// side-by-side verify grid: FILE (loaded .bin) on the left, CHIP (read from РТ4) on the right; mismatches red in both
+function renderHexSplit(){
+  const n=chip().size, W=chip().bits===8?2:1, colw=16*(W+1);
+  const cell=(v,mm)=>`<span class="${mm?'hm':(v?'hn':'hz')}">${v.toString(16).toUpperCase().padStart(W,'0')}</span>`;
+  let cols='';for(let c=0;c<16;c++)cols+=c.toString(16).toUpperCase().padStart(W,'0')+' ';
+  let o=`<span class="hc">     ${'FILE'.padEnd(colw)}│ CHIP</span>\n`;
+  o+=`<span class="hc">     ${cols}│ ${cols}</span>\n`;
+  for(let r=0;r<n;r+=16){let lf='',rt='';
+    for(let c=0;c<16&&r+c<n;c++){const i=r+c,fv=mask(fileData[i]||0),cv=mask(chipData[i]!==undefined?chipData[i]:0),mm=fv!==cv;
+      const ttl=mm?` title="${tr('tt_mism',i.toString(16).toUpperCase().padStart(2,'0'),fv.toString(16).toUpperCase(),cv.toString(16).toUpperCase())}"`:'';
+      lf+=cell(fv,mm).replace('<span',`<span${ttl}`)+' '; rt+=cell(cv,mm).replace('<span',`<span${ttl}`)+' ';}
+    o+=`<span class="ha">${r.toString(16).toUpperCase().padStart(3,'0')}:</span> ${lf}│ ${rt}\n`;}
+  $('hex').innerHTML=o;
+}
+async function verify(){if(!fileData){log(tr('need_bin'),'warn');return;}const d=await readChip();if(!d)return;
+  setVerifyView(true);
+  const {m,f,n}=showVerify();
   log(m===0?tr('verify_ok',n):tr('verify_bad',n-m,n,m,f.toString(16).toUpperCase()),m===0?'ok':'err');}
 function saveBin(){if(!chipData){log(tr('nothing_save'),'warn');return;}
   const hiF=$('hiF')&&$('hiF').checked;
@@ -322,7 +580,7 @@ async function burn(){
 
 function loadFile(f){const r=new FileReader();r.onload=()=>{fileData=new Uint8Array(r.result);
   loadedName=f.name;setFileName();log(tr('loaded',f.name,fileData.length));
-  if(fileData.length<chip().size)log(tr('short_file',chip().size),'warn');renderHex(fileData);updateOps();};r.readAsArrayBuffer(f);}
+  if(fileData.length<chip().size)log(tr('short_file',chip().size),'warn');setVerifyView(false);renderHex(fileData);updateOps();};r.readAsArrayBuffer(f);}
 function setFileName(){$('fileName').textContent=loadedName?tr('fpill',loadedName,(fileData?fileData.length:0)):tr('file_none');}
 function renderHex(src,mark){if(!src)src=chipData||fileData;hexShown=src;hexMark=mark;
   if(!src){$('hexsrc').textContent='';$('hex').textContent=tr('hex_none');$('hexsum').textContent='';$('hexnote').textContent='';return;}
@@ -339,12 +597,17 @@ function renderHex(src,mark){if(!src)src=chipData||fileData;hexShown=src;hexMark
       if(mark&&chipData&&fileData&&chipData[i]!==mask(fileData[i]||0)){cls='hm';ttl=` title="${tr('tt_mism',i.toString(16).toUpperCase().padStart(2,'0'),mask(fileData[i]||0).toString(16).toUpperCase(),v.toString(16).toUpperCase())}"`;}
       o+=`<span class="${cls}"${ttl}>${v.toString(16).toUpperCase().padStart(chip().bits===8?2:1,'0')}</span> `;}
     o+='\n';}$('hex').innerHTML=o;}
-function updateOps(){const on=!!port;$('btnVerify').disabled=!(on&&fileData);$('btnBurn').disabled=!(on&&fileData&&fwOk);
-  $('btnSave').disabled=!(on&&chipData);}
+// every chip operation requires confirmed firmware (fwOk); only flashing is allowed when fw is wrong/old
+function updateOps(){const ready=!!port&&fwOk;
+  for(const id of['btnVolt','btnRead','btnBlank','btnSet'])$(id).disabled=!ready;
+  $('btnVerify').disabled=!(ready&&fileData);
+  $('btnBurn').disabled=!(ready&&fileData);
+  $('btnSave').disabled=!(ready&&chipData);}
 
 $('btnConnect').onclick=connect;$('btnDisconnect').onclick=disconnect;$('btnVolt').onclick=readVoltage;
 $('btnRead').onclick=readChip;$('btnBlank').onclick=blankCheck;$('btnSave').onclick=saveBin;
-$('btnVerify').onclick=verify;$('btnBurn').onclick=burn;$('btnSet').onclick=sendSettings;
+$('btnVerify').onclick=verify;$('btnBurn').onclick=burn;$('btnSet').onclick=sendSettings;$('btnFlash').onclick=flashNano;
+$('btnHexView').onclick=()=>{verifySplit=!verifySplit;$('btnHexView').textContent=verifySplit?'⇄ single view':'⇄ split view';if(verifyActive)showVerify();};
 $('btnFile').onclick=()=>{$('file').value='';$('file').click();};$('file').onchange=e=>{if(e.target.files[0])loadFile(e.target.files[0]);};
 $('lang').onclick=()=>setLang(lang==='ru'?'en':'ru');setLang('ru');
 log(tr('ready'),'ok');
