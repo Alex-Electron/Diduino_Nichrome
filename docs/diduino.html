@@ -66,7 +66,7 @@
 <div class="wrap">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
     <div>
-      <h1>DIDUINO NICHROME <span style="font-size:12px;color:var(--green-dim)">app&nbsp;v0.6.1</span><span class="cur">_</span></h1>
+      <h1>DIDUINO NICHROME <span style="font-size:12px;color:var(--green-dim)">app&nbsp;v0.6.2</span><span class="cur">_</span></h1>
       <div class="sub" data-i18n="sub">Web Serial · прошивка: Diduino_Nichrome.ino · КР556РТ4 (256×4)</div>
     </div>
     <button id="lang" style="padding:6px 12px">EN</button>
@@ -146,7 +146,7 @@ const MSG={
   nothing_save:'нечего сохранять — сначала READ',saved:n=>'дамп сохранён ('+n+' б)',
   burn_confirm:n=>`Прожиг КР556РТ4 (${n} б) необратим. Чип ЧИСТЫЙ? Продолжить?`,burn_set:p=>`SET: имп=${p.imp} t=${p.len}мкс duty=${p.duty}% soak=${p.soak} p${p.lvl}`,
   burn_send:n=>'BURN: отправляю '+n+' байт на плату…',crc_bad:(c,m)=>`CRC-32 НЕ СОВПАЛА: плата=${c} ≠ файл=${m} → ОТМЕНА (ошибка передачи)`,
-  crc_ok:m=>`✓ CRC-32 совпала (${m}) — передача без ошибок`,burn_ok:'*** ПРОЖИГ УСПЕШЕН (сверка на плате) ***',burn_err:'*** ПРОЖИГ С ОШИБКАМИ — см. лог ***',
+  crc_ok:m=>`✓ CRC-32 (4 бита) совпала (${m}) — передача без ошибок`,burn_ok:'*** ПРОЖИГ УСПЕШЕН (сверка на плате) ***',burn_err:'*** ПРОЖИГ С ОШИБКАМИ — см. лог ***',
   burn_prog:(a,n)=>`прожиг ${a}/${n}…`,burn_verf:(a,n)=>`сверка ${a}/${n}…`,burn_wait:'жду ответа платы…',
   loaded:(nm,n)=>'загружен '+nm+', '+n+' б',short_file:n=>'⚠ файл короче '+n,ready:'готов. CONNECT → операции.',proto:'протокол: v · p<n> · I/L/D · R · B · s',
   file_none:'файл: —',fpill:(nm,n)=>'файл: '+nm+' ('+n+'б)',hex_none:'— нет данных —',src_file:'· показан ФАЙЛ',src_chip:'· показан ЧИП',crc1:s=>'· CRC-32: '+s,crc2:(d,r)=>'· CRC-32 (4 бита): '+d+' · сырой файл: '+r,crc_note:'РТ4 = 4 бита/ячейку: «4 бита» — данные на чипе (сверяй с ним), «сырой файл» — все 8 бит файла (как CRC сторонней утилиты по байтам)',crc_cmp:(ff,cc,ok)=>'· файл (4 бита): '+ff+' · чип: '+cc+(ok?' ✓ совпало':' ✗ расхождение'),crc_note_v:'сверка по 4 битам данных (старший нибл на чипе отсутствует)',l_raw:'сырой файл',l_f4:'файл (4 бита)',l_chip2:'чип',tt_mism:(a,w,g)=>'@0x'+a+': ждали 0x'+w+', на чипе 0x'+g},
@@ -159,7 +159,7 @@ const MSG={
   nothing_save:'nothing to save — READ first',saved:n=>'dump saved ('+n+' B)',
   burn_confirm:n=>`Burning КР556РТ4 (${n} B) is irreversible. Chip BLANK? Continue?`,burn_set:p=>`SET: pulses=${p.imp} t=${p.len}us duty=${p.duty}% soak=${p.soak} p${p.lvl}`,
   burn_send:n=>'BURN: sending '+n+' bytes to board…',crc_bad:(c,m)=>`CRC-32 MISMATCH: board=${c} ≠ file=${m} → ABORTED (transfer error)`,
-  crc_ok:m=>`✓ CRC-32 match (${m}) — transfer OK`,burn_ok:'*** BURN SUCCESS (verified on board) ***',burn_err:'*** BURN HAD ERRORS — see log ***',
+  crc_ok:m=>`✓ CRC-32 (4-bit) match (${m}) — transfer OK`,burn_ok:'*** BURN SUCCESS (verified on board) ***',burn_err:'*** BURN HAD ERRORS — see log ***',
   burn_prog:(a,n)=>`programming ${a}/${n}…`,burn_verf:(a,n)=>`verifying ${a}/${n}…`,burn_wait:'waiting for board…',
   loaded:(nm,n)=>'loaded '+nm+', '+n+' B',short_file:n=>'⚠ file shorter than '+n,ready:'ready. CONNECT → operations.',proto:'protocol: v · p<n> · I/L/D · R · B · s',
   file_none:'file: —',fpill:(nm,n)=>'file: '+nm+' ('+n+' B)',hex_none:'— no data —',src_file:'· showing FILE',src_chip:'· showing CHIP',crc1:s=>'· CRC-32: '+s,crc2:(d,r)=>'· CRC-32 (4-bit): '+d+' · raw file: '+r,crc_note:'RT4 = 4 bits/cell: «4-bit» is the data on the chip (compare with it), «raw file» is all 8 bits of the file (what an external tool CRCs over bytes)',crc_cmp:(ff,cc,ok)=>'· file (4-bit): '+ff+' · chip: '+cc+(ok?' ✓ match':' ✗ differ'),crc_note_v:'compared over the 4-bit data (high nibble is not present on the chip)',l_raw:'raw file',l_f4:'file (4-bit)',l_chip2:'chip',tt_mism:(a,w,g)=>'@0x'+a+': expected 0x'+w+', chip 0x'+g}
@@ -296,7 +296,7 @@ async function burn(){
   if(chipCrc!==myCrc){ await send('N\n');
     log(tr('crc_bad',hx(chipCrc),hx(myCrc)),'err');
     $('barfill').style.width='0'; return; }
-  log(tr('crc_ok',hx(myCrc)),'ok');
+  log(tr('crc_ok',hx8(crc32(buf,n,true))),'ok');   // show the 4-bit (data) CRC, consistent with the HEX panel and the chip
   await send('Y'+myCrc.toString(16).toUpperCase().padStart(8,'0')+'\n');   // #9: send GO + expected CRC-32; firmware refuses to burn unless it matches
   $('barfill').style.width='0'; setBL(tr('burn_wait'));
   const res=await readBurnResult(180000);     // moves the bar from PROG/VERF markers and logs every line

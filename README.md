@@ -41,7 +41,7 @@ This repository adds only the new firmware and the web app. The license stays th
 
 The stock Diduino works. Three things made me redo the host side and the firmware anyway:
 
-1. **A web page you just open.** No Qt application to download, install or keep up to date. One self-contained HTML file, opened straight from disk in Chrome or Edge, talks to the board over Web Serial. Nothing else to set up.
+1. **A web page you just open.** No Qt application to download, install or keep up to date. One self-contained HTML file, opened straight from disk in Chrome or Edge, talks to the board over Web Serial.
 
 2. **A tighter, more reliable firmware.** The original sketch is a single read/write engine. I wanted the burn step itself to be defensive: check the chip before touching it, refuse a corrupted transfer, set the programming voltage on its own instead of trusting me to remember, and always leave the board in a safe state afterwards. КР556РТ4 is one-time programmable — a single wrong move ruins the part, so the firmware should catch the obvious mistakes instead of faithfully executing them.
 
@@ -100,7 +100,7 @@ The burn is gated so that the usual ways to wreck a chip are caught before any v
 | **Per-bit verify** | Each bit is pulsed and read back; pulsing stops as soon as the bit takes. |
 | **Soak** | A few extra pulses after the bit takes, so the link is fully blown. |
 | **Verify at rest** | The boost drops to its floor and the whole chip is re-read and compared to the image. |
-| **Safe state** | On every exit — success, abort or error — the board ends with no program pulse, the boost at its floor, and the serial buffer cleaned up. |
+| **Safe state** | On every exit (success, abort or error) the board ends with no program pulse, the boost dropped to its floor, and the serial buffer flushed. |
 
 ---
 
