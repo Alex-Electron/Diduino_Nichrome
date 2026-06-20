@@ -122,7 +122,8 @@ The burn is gated so that the usual ways to wreck a chip are caught before any v
 | `S<n>` | soak pulses after a bit takes (default 50, capped at 128) |
 | `R` | read the whole chip, 256 raw bytes |
 | `B` | burn: stream 256 bytes, then the CRC gate, checks and verify |
-| `s` | safe state |
+| `T<cV>` | calibrate Vpp to a meter reading, saved in EEPROM (centivolts, e.g. `T1250`; see [Voltage calibration](#voltage-calibration)) |
+| `j` | safe state |
 
 There is also a diagnostic set for board bring-up (`a c m d e k W`) used to test the address chain, mux, CS line and a single program pulse.
 
