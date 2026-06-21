@@ -1999,7 +1999,7 @@ const MSG={
   burn_prog:(a,n)=>`прожиг ${a}/${n}…`,burn_verf:(a,n)=>`сверка ${a}/${n}…`,burn_wait:'жду ответа платы…',
   loaded:(nm,n)=>'загружен '+nm+', '+n+' б',short_file:n=>'⚠ файл короче '+n,ready:'готов. CONNECT → операции.',proto:'протокол: v · p<n> · I/L/D · R · B · s',
   fw_press_flash:v=>'⛔ операции заблокированы. Нажми [ ⟳ FLASH NANO ], чтобы обновить прошивку платы до Diduino_Nichrome v'+v+'.',
-  flash_reok:v=>'Прошивка платы в порядке. Перепрошить Diduino_Nichrome v'+v+' всё равно?',
+  flash_confirm:(cur,nw)=>'Перепрошить плату? На плате Nichrome v'+cur+' → будет залита v'+nw+'.',
   fw_update_offer:(cur,nw)=>'На плате прошивка Nichrome v'+cur+'. Доступна v'+nw+' (мультичип, поддержка К155РЕ3). Обновить сейчас?',
   flash_start:v=>'═══ ПРОШИВКА NANO: Diduino_Nichrome v'+v+' ═══',
   flash_embedded:mcu=>'прошивка взята из встроенной в страницу ('+mcu+')',flash_crcok:c=>'CRC-32 ок '+c,flash_corrupt:(mcu,got,want)=>'⛔ встроенная прошивка '+mcu+' ПОВРЕЖДЕНА (CRC-32 '+got+' ≠ '+want+') — НЕ шью, чтобы не убить чип',flash_badhex:ln=>'битый Intel-HEX (строка '+ln+') — отмена, чип не трогаю',flash_hexget:'получаю .hex…',flash_hexfetch:(u,n)=>'.hex по fetch ('+u+'): '+n+' б',flash_pickfirst:'file:// — выбери .hex под свою плату (MCU указан в имени; сверю с сигнатурой чипа)',flash_hexpicked:(nm,n)=>'.hex выбран: '+nm+' ('+n+' б)',flash_hexfail:'.hex не выбран — отмена',
@@ -2023,7 +2023,7 @@ const MSG={
   burn_prog:(a,n)=>`programming ${a}/${n}…`,burn_verf:(a,n)=>`verifying ${a}/${n}…`,burn_wait:'waiting for board…',
   loaded:(nm,n)=>'loaded '+nm+', '+n+' B',short_file:n=>'⚠ file shorter than '+n,ready:'ready. CONNECT → operations.',proto:'protocol: v · p<n> · I/L/D · R · B · s',
   fw_press_flash:v=>'⛔ operations blocked. Press [ ⟳ FLASH NANO ] to update the board firmware to Diduino_Nichrome v'+v+'.',
-  flash_reok:v=>'Board firmware is fine. Re-flash Diduino_Nichrome v'+v+' anyway?',
+  flash_confirm:(cur,nw)=>'Re-flash the board? Board has Nichrome v'+cur+' → v'+nw+' will be written.',
   fw_update_offer:(cur,nw)=>'Board has Nichrome v'+cur+'. v'+nw+' is available (multi-chip, adds К155РЕ3). Update now?',
   flash_start:v=>'═══ FLASHING NANO: Diduino_Nichrome v'+v+' ═══',
   flash_embedded:mcu=>'using firmware embedded in the page ('+mcu+')',flash_crcok:c=>'CRC-32 ok '+c,flash_corrupt:(mcu,got,want)=>'⛔ embedded firmware '+mcu+' is CORRUPT (CRC-32 '+got+' ≠ '+want+') — refusing to flash, sparing the chip',flash_badhex:ln=>'corrupt Intel-HEX (line '+ln+') — aborted, chip untouched',flash_hexget:'fetching .hex…',flash_hexfetch:(u,n)=>'.hex via fetch ('+u+'): '+n+' B',flash_pickfirst:'file:// — pick the .hex for your board (MCU is in the name; checked against the chip signature)',flash_hexpicked:(nm,n)=>'.hex picked: '+nm+' ('+n+' B)',flash_hexfail:'no .hex selected — aborted',
@@ -2040,6 +2040,7 @@ const RE3={hsel:1,size:32 ,bits:8,name:'К155РЕ3',def:{imp:1000,len:40,duty:10
 const CHIPS={rt4:RT4,re3:RE3};
 let port=null,writer=null,reader=null,keepReading=false,rxq=[];
 let fwOk=false;                           // firmware confirmed = Nichrome AND >= MIN_FW
+let fwVer=null;                            // version string detected on the board (for the re-flash confirm wording)
 let fwChips=null;                          // chips the board advertises via 'CHIPS=' (null = old РТ4-only fw, no advert)
 const MIN_FW='0.6.0';                      // require the calibrated-voltmeter firmware (ratiometric Vpp + EEPROM cal); РЕ3 is gated separately by capability
 const FW_VER='0.7.0';                      // firmware version this app ships .hex files for (web-flash) — multi-chip РТ4+РЕ3
@@ -2101,6 +2102,7 @@ function detectFirmware(b){
   const isNi=b.includes('NICHROME'), ver=vm?vm[1]:null;
   const verOk = ver!=null && vge(ver,MIN_FW);           // version gate: must be >= MIN_FW
   fwOk = isNi && verOk;                                  // accept only Nichrome AND a high-enough version
+  fwVer = ver;                                           // remember the detected version (for the re-flash confirm)
   if(fwOk){ $('fw').textContent='fw: Nichrome v'+ver+' ✓'; }
   else if(isNi){ $('fw').textContent='fw: Nichrome v'+(ver||'?')+' ⚠ <'+MIN_FW; log(tr('fw_old',ver||'?',MIN_FW),'err'); }
   else { $('fw').textContent='fw: ? '+tr('fw_need'); log(tr('fw_bad'),'err'); }
@@ -2256,7 +2258,7 @@ async function stkWriteVerify(img){
 }
 
 async function flashNano(force){
-  if(!force && fwOk && !(await uiConfirm(tr('flash_reok',FW_VER),true))) return;   // guard accidental re-flash (skipped when called from the auto-update offer)
+  if(!force && fwOk && !(await uiConfirm(tr('flash_confirm',fwVer||'?',FW_VER),true))) return;   // guard accidental re-flash (skipped when called from the auto-update offer)
   const fileMode = location.protocol==='file:';   // on file:// fetch is blocked
   const embedded = anyEmbedded();                  // firmware baked into this page → no external file needed anywhere
 
