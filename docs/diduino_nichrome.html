@@ -29,6 +29,11 @@
   .panel{border:1px solid var(--green-deep);background:rgba(8,18,8,.6);border-radius:6px;
     padding:12px 14px;margin-bottom:14px;box-shadow:0 0 12px rgba(0,255,65,.07) inset}
   .panel h2{font-size:11px;letter-spacing:2px;color:var(--green-dim);margin:0 0 10px;text-transform:uppercase}
+  details.panel>summary{font-size:11px;letter-spacing:2px;color:var(--green-dim);text-transform:uppercase;cursor:pointer;list-style:none;user-select:none;display:flex;align-items:center;justify-content:space-between}
+  details.panel>summary::-webkit-details-marker{display:none}
+  details.panel>summary::after{content:"\25C2";font-size:20px;line-height:1;margin-left:12px}
+  details.panel[open]>summary{margin-bottom:10px}
+  details.panel[open]>summary::after{content:"\25BE"}
   .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
   button,select{font-family:var(--mono);font-size:13px;color:var(--green);background:#0a160a;
     border:1px solid var(--green-deep);border-radius:4px;padding:8px 14px;cursor:pointer;letter-spacing:1px;
@@ -65,13 +70,26 @@
     padding:8px;border-radius:4px;white-space:pre-wrap;word-break:break-word}
   #log .t{color:#16401f}#log .ok{color:#5cff7a}#log .err{color:var(--red)}#log .warn{color:var(--amber)}
   .hint{color:var(--green-dim);font-size:11px;margin-top:6px}
+  .modal-overlay{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;
+    background:rgba(2,4,2,.78);backdrop-filter:blur(2px)}
+  .modal-overlay[hidden]{display:none}
+  .modal-box{width:100%;max-width:460px;border:1px solid var(--green);border-radius:6px;padding:18px 20px;
+    background:rgba(8,18,8,.97);box-shadow:0 0 24px rgba(0,255,65,.25),0 0 0 1px rgba(0,255,65,.15) inset}
+  .modal-box.danger{border-color:var(--amber);box-shadow:0 0 24px rgba(255,176,0,.28),0 0 0 1px rgba(255,176,0,.15) inset}
+  .modal-title{font-size:11px;letter-spacing:2px;color:var(--green-dim);margin:0 0 12px;text-transform:uppercase}
+  .modal-box.danger .modal-title{color:var(--amber)}
+  .modal-msg{white-space:pre-wrap;font-size:13px;line-height:1.5;margin-bottom:14px}
+  .modal-input{font-family:var(--mono);font-size:14px;color:var(--green);background:#0a160a;width:100%;
+    border:1px solid var(--green-deep);border-radius:4px;padding:8px 10px;margin-bottom:14px;text-shadow:0 0 4px rgba(0,255,65,.5)}
+  .modal-input:focus{outline:none;border-color:var(--green);box-shadow:0 0 8px rgba(0,255,65,.3)}
+  .modal-btns{display:flex;gap:10px;justify-content:flex-end}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
     <div>
-      <h1>DIDUINO NICHROME <span style="font-size:12px;color:var(--green-dim)">app&nbsp;v0.7.2</span><span class="cur">_</span></h1>
+      <h1>DIDUINO NICHROME <span style="font-size:12px;color:var(--green-dim)">app&nbsp;v0.7.3</span><span class="cur">_</span></h1>
       <div class="sub"><span data-i18n="sub">Web Serial · прошивка: Diduino_Nichrome.ino · КР556РТ4 (256×4)</span> · <a href="https://github.com/Alex-Electron/Diduino_Nichrome" target="_blank" rel="noopener" style="color:var(--green);text-decoration:underline;text-shadow:0 0 4px rgba(0,255,65,.45)">github.com/Alex-Electron/Diduino_Nichrome ↗</a></div>
     </div>
     <button id="lang" style="padding:6px 12px">EN</button>
@@ -86,31 +104,6 @@
       <button id="btnFlash" class="danger" data-i18n="b_flash">[ ⟳ FLASH NANO ]</button>
     </div>
     <div class="hint" data-i18n="hint_conn">Chrome/Edge, открыть локально (file://). Закрой Arduino IDE / DidUino перед CONNECT.</div>
-  </div>
-
-  <div class="panel"><h2 data-i18n="h_chip">Чип · напряжение · параметры прожига</h2>
-    <div class="row" style="margin-bottom:12px;gap:26px;align-items:flex-end">
-      <label class="fld"><span data-i18n="l_chip">микросхема</span><span class="pill">КР556РТ4 · 256×4</span></label>
-      <label class="fld">Vpp<div class="big"><span id="volt">--.--</span> V</div></label>
-      <label class="fld"><span data-i18n="l_level">уровень p0–p7</span>
-        <select id="level">
-          <option value="0">p0 ~11.6</option><option value="1" selected>p1 ~12.5 (РТ4)</option>
-          <option value="2">p2 ~13.0</option><option value="3">p3 ~13.4</option>
-          <option value="4">p4 ~13.8</option><option value="5">p5 ~14.2</option>
-          <option value="6">p6 ~14.7</option><option value="7">p7 ~15.0</option>
-        </select>
-      </label>
-      <label class="fld"><span data-i18n="l_imp">Кол-во импульсов</span><input id="pImp" type="number" value="1000" min="1" max="65535"></label>
-      <label class="fld"><span data-i18n="l_len">Время имп., мкс</span><input id="pLen" type="number" value="40" min="1" max="65535"></label>
-      <label class="fld"><span data-i18n="l_duty">Заполнение %</span><input id="pDuty" type="number" value="10" min="1" max="99"></label>
-      <label class="fld"><span data-i18n="l_soak">Soak имп.</span><input id="pSoak" type="number" value="50" min="0" max="128"></label>
-    </div>
-    <div class="row">
-      <button id="btnVolt" disabled>[ READ V ]</button>
-      <button id="btnCal" disabled>[ CAL V ]</button>
-      <button id="btnSet" disabled data-i18n="b_send">[ SEND SETTINGS ]</button>
-    </div>
-    <div class="hint" data-i18n="hint_chip">Напряжение = уровень p0–p7. По умолчанию для РТ4: 1000 имп. / 40 мкс / 10%. BURN берёт эти значения.</div>
   </div>
 
   <div class="panel"><h2 data-i18n="h_ops">Операции</h2>
@@ -135,7 +128,44 @@
   </div>
 
   <div class="panel"><h2>HEX <span id="hexsrc" class="label"></span><button id="btnHexView" disabled style="font-size:11px;padding:3px 8px;margin-left:10px;letter-spacing:0">⇄ split view</button></h2><div id="hexsum" style="white-space:pre;font-family:'Consolas','Courier New',monospace;font-size:13px;line-height:1.45;color:var(--amber);margin:3px 0"></div><div class="hint" id="hexnote"></div><div id="hex">— нет данных —</div></div>
+  <details class="panel" id="chipPanel"><summary data-i18n="h_chip">Чип · напряжение · параметры прожига</summary>
+    <div class="row" style="margin-bottom:12px;gap:26px;align-items:flex-end">
+      <label class="fld"><span data-i18n="l_chip">микросхема</span><span class="pill">КР556РТ4 · 256×4</span></label>
+      <label class="fld">Vpp<div class="big"><span id="volt">--.--</span> V</div></label>
+      <label class="fld"><span data-i18n="l_level">уровень p0–p7</span>
+        <select id="level">
+          <option value="0">p0 ~11.6</option><option value="1" selected>p1 ~12.5 (РТ4)</option>
+          <option value="2">p2 ~13.0</option><option value="3">p3 ~13.4</option>
+          <option value="4">p4 ~13.8</option><option value="5">p5 ~14.2</option>
+          <option value="6">p6 ~14.7</option><option value="7">p7 ~15.0</option>
+        </select>
+      </label>
+      <label class="fld"><span data-i18n="l_imp">Кол-во импульсов</span><input id="pImp" type="number" value="1000" min="1" max="65535"></label>
+      <label class="fld"><span data-i18n="l_len">Время имп., мкс</span><input id="pLen" type="number" value="40" min="1" max="65535"></label>
+      <label class="fld"><span data-i18n="l_duty">Заполнение %</span><input id="pDuty" type="number" value="10" min="1" max="99"></label>
+      <label class="fld"><span data-i18n="l_soak">Soak имп.</span><input id="pSoak" type="number" value="50" min="0" max="128"></label>
+    </div>
+    <div class="row">
+      <button id="btnVolt" disabled>[ READ V ]</button>
+      <button id="btnCal" disabled>[ CAL V ]</button>
+      <button id="btnSet" disabled data-i18n="b_send">[ SEND SETTINGS ]</button>
+    </div>
+    <div class="hint" data-i18n="hint_chip">Напряжение = уровень p0–p7. По умолчанию для РТ4: 1000 имп. / 40 мкс / 10%. BURN берёт эти значения.</div>
+  </details>
+
   <div class="panel"><h2 data-i18n="h_log">Лог</h2><div id="log"></div></div>
+</div>
+
+<div id="modal" class="modal-overlay" hidden>
+  <div id="modalBox" class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <h2 id="modalTitle" class="modal-title">DIDUINO NICHROME</h2>
+    <div id="modalMsg" class="modal-msg"></div>
+    <input id="modalInput" class="modal-input" type="text" hidden>
+    <div class="modal-btns">
+      <button id="modalCancel">[ CANCEL ]</button>
+      <button id="modalOk">[ OK ]</button>
+    </div>
+  </div>
 </div>
 
 <!-- Embedded firmware (Intel HEX), injected by firmware/build-hex.ps1. Lets a single saved .html
@@ -1868,6 +1898,32 @@
 <script>
 "use strict";
 const $=id=>document.getElementById(id);
+
+// ---- themed modal dialogs (drop-in for native confirm/prompt, hacker-green style) ----
+let modalResolve=null, modalInputMode=false;
+function modalClose(val){ if(!modalResolve)return; const r=modalResolve; modalResolve=null;
+  $('modal').hidden=true; document.removeEventListener('keydown',modalKey,true); r(val); }
+function modalKey(e){
+  if(e.key==='Escape'){ e.preventDefault(); modalClose(modalInputMode?null:false); }
+  else if(e.key==='Enter'){ e.preventDefault(); $('modalOk').click(); }
+}
+function openModal({msg,danger=false,input=false,value=''}){
+  return new Promise(res=>{
+    modalResolve=res; modalInputMode=input;
+    $('modalMsg').textContent=msg;
+    $('modalBox').classList.toggle('danger',danger);
+    const inp=$('modalInput'); inp.hidden=!input; if(input) inp.value=value;
+    $('modal').hidden=false;
+    document.addEventListener('keydown',modalKey,true);
+    (input?inp:$('modalOk')).focus(); if(input) inp.select();
+  });
+}
+const uiConfirm=(msg,danger=false)=>openModal({msg,danger}).then(v=>v===true);
+const uiPrompt =(msg,value='')=>openModal({msg,input:true,value});
+$('modalOk').addEventListener('click',()=>modalClose(modalInputMode?$('modalInput').value:true));
+$('modalCancel').addEventListener('click',()=>modalClose(modalInputMode?null:false));
+$('modal').addEventListener('mousedown',e=>{ if(e.target===$('modal')) modalClose(modalInputMode?null:false); });
+
 let lang='ru';
 const I18N={
  ru:{sub:'Web Serial · прошивка: Diduino_Nichrome.ino · КР556РТ4 (256×4)',h_conn:'Соединение',h_chip:'Чип · напряжение · параметры прожига',h_ops:'Операции',h_log:'Лог',l_chip:'микросхема',l_level:'уровень p0–p7',l_imp:'Кол-во импульсов',l_len:'Время имп., мкс',l_duty:'Заполнение %',l_soak:'Soak имп.',hiF_lbl:'старший нибл = F',b_send:'[ SEND SETTINGS ]',b_flash:'[ ⟳ FLASH NANO ]',hint_conn:'Chrome/Edge, открыть локально (file://). Закрой Arduino IDE / DidUino перед CONNECT.',hint_chip:'Напряжение = уровень p0–p7. По умолчанию для РТ4: 1000 имп. / 40 мкс / 10%. BURN берёт эти значения.',hint_ops:'BURN: уровень Vpp p1, загрузи .bin, чип должен быть ЧИСТЫЙ.'},
@@ -1879,7 +1935,7 @@ const MSG={
  ru:{port_open:'порт открыт, сброс Arduino…',fw_bad:'⚠ баннер не Diduino_Nichrome — залей Diduino_Nichrome.ino',fw_need:'нужна Diduino_Nichrome.ino',fw_old:(v,min)=>'⚠ прошивка Nichrome v'+v+' устарела — нужна ≥ '+min+'. Прожиг заблокирован.',fw_block:(min)=>'прожиг заблокирован: нужна прошивка Nichrome ≥ '+min,connected:'подключено',
   conn_fail:e=>'ошибка подключения: '+e,disconnected:'отключено',no_ws:'Web Serial недоступен — нужен Chrome/Edge',
   volt:v=>'Vpp = '+v+' В',no_v:'нет ответа на v',settings:p=>`настройки: имп=${p.imp} t=${p.len}мкс duty=${p.duty}% soak=${p.soak} p${p.lvl}`,
-  cal_prompt:cur=>'Калибровка Vpp.\nПлата СЕЙЧАС показывает '+cur+' В на текущем уровне.\nОБЯЗАТЕЛЬНО замерь это напряжение мультиметром ПРЯМО СЕЙЧАС и введи измеренное (В, напр. 12.50):',cal_bad:'неверное значение — калибровка отменена',cal_done:c=>'✓ калибровка сохранена в EEPROM (C='+c+')',cal_noresp:'нет ответа на калибровку — нужна прошивка ≥ 0.6.0',cal_mismatch:(got,want)=>'⚠ после калибровки '+got+' В вместо ~'+want+' — прошивка на плате не совпала с приложением, перепрошей Nano (FLASH NANO) и повтори',
+  cal_prompt:cur=>'Калибровка Vpp.\nПлата СЕЙЧАС показывает '+cur+' В на текущем уровне.\nМеряй мультиметром НА ПЛАТЕ Дидуино: между контактом перемычки H1 и землёй (GND). Перемычку можно не снимать.\nОБЯЗАТЕЛЬНО замерь это напряжение ПРЯМО СЕЙЧАС и введи измеренное (В, напр. 12.50):',cal_bad:'неверное значение — калибровка отменена',cal_done:c=>'✓ калибровка сохранена в EEPROM (C='+c+')',cal_noresp:'нет ответа на калибровку — нужна прошивка ≥ 0.6.0',cal_mismatch:(got,want)=>'⚠ после калибровки '+got+' В вместо ~'+want+' — прошивка на плате не совпала с приложением, перепрошей Nano (FLASH NANO) и повтори',
   reading:n=>'чтение '+n+' байт…',read_done:(n,nz)=>`прочитано ${n}, ненулевых ${nz}`,read_err:e=>'ошибка чтения: '+e,
   blank_ok:'*** ЧИП ЧИСТЫЙ ***',blank_no:nz=>`*** НЕ ПУСТОЙ: ${nz} ненулевых ***`,need_bin:'сначала загрузи .bin',
   verify_ok:n=>`*** VERIFY OK — ${n}/${n} ***`,verify_bad:(ok,n,m,f)=>`*** VERIFY: ${ok}/${n} ок, расхождений ${m} (1-е @0x${f}) ***`,
@@ -1902,7 +1958,7 @@ const MSG={
  en:{port_open:'port open, resetting Arduino…',fw_bad:'⚠ banner is not Diduino_Nichrome — flash Diduino_Nichrome.ino',fw_need:'need Diduino_Nichrome.ino',fw_old:(v,min)=>'⚠ Nichrome firmware v'+v+' is too old — need ≥ '+min+'. Burn disabled.',fw_block:(min)=>'burn blocked: need Nichrome firmware ≥ '+min,connected:'connected',
   conn_fail:e=>'connect failed: '+e,disconnected:'disconnected',no_ws:'Web Serial unavailable — use Chrome/Edge',
   volt:v=>'Vpp = '+v+' V',no_v:'no reply to v',settings:p=>`settings: pulses=${p.imp} t=${p.len}us duty=${p.duty}% soak=${p.soak} p${p.lvl}`,
-  cal_prompt:cur=>'Vpp calibration.\nThe board reads '+cur+' V NOW at the current level.\nYou MUST measure this voltage with a multimeter RIGHT NOW and enter the measured value (V, e.g. 12.50):',cal_bad:'invalid value — calibration cancelled',cal_done:c=>'✓ calibration saved to EEPROM (C='+c+')',cal_noresp:'no calibration response — needs firmware ≥ 0.6.0',cal_mismatch:(got,want)=>'⚠ after calibration '+got+' V instead of ~'+want+' — board firmware did not match the app, re-flash the Nano (FLASH NANO) and retry',
+  cal_prompt:cur=>'Vpp calibration.\nThe board reads '+cur+' V NOW at the current level.\nMeasure with a multimeter ON THE Diduino BOARD: between the H1 jumper pin and ground (GND). The jumper can stay in place.\nYou MUST measure this voltage RIGHT NOW and enter the measured value (V, e.g. 12.50):',cal_bad:'invalid value — calibration cancelled',cal_done:c=>'✓ calibration saved to EEPROM (C='+c+')',cal_noresp:'no calibration response — needs firmware ≥ 0.6.0',cal_mismatch:(got,want)=>'⚠ after calibration '+got+' V instead of ~'+want+' — board firmware did not match the app, re-flash the Nano (FLASH NANO) and retry',
   reading:n=>'reading '+n+' bytes…',read_done:(n,nz)=>`read ${n}, non-zero ${nz}`,read_err:e=>'read error: '+e,
   blank_ok:'*** CHIP IS BLANK ***',blank_no:nz=>`*** NOT BLANK: ${nz} non-zero ***`,need_bin:'load .bin first',
   verify_ok:n=>`*** VERIFY OK — ${n}/${n} ***`,verify_bad:(ok,n,m,f)=>`*** VERIFY: ${ok}/${n} ok, mismatches ${m} (1st @0x${f}) ***`,
@@ -2137,7 +2193,7 @@ async function stkWriteVerify(img){
 }
 
 async function flashNano(){
-  if(fwOk && !confirm(tr('flash_reok',FW_VER))) return;   // guard accidental re-flash of an already-good board
+  if(fwOk && !(await uiConfirm(tr('flash_reok',FW_VER),true))) return;   // guard accidental re-flash of an already-good board
   const fileMode = location.protocol==='file:';   // on file:// fetch is blocked
   const embedded = anyEmbedded();                  // firmware baked into this page → no external file needed anywhere
 
@@ -2238,11 +2294,16 @@ async function readVoltage(settleMs=0){
 // one-time Vpp calibration. Reads the board's CURRENT Vpp first and asks the user to enter the meter
 // value measured at that very moment (level-independent), then verifies the new reading matches.
 async function calibrate(){
-  await readVoltage(VSETTLE);                             // settle, then show the board's actual current reading
-  const before=$('volt').textContent;
-  const ans=prompt(tr('cal_prompt',before),'');
+  const FR=['|','/','─','\\'];  // a 4-step spinner | / ─ \
+  let fi=0;
+  const promise=uiPrompt(tr('cal_prompt',FR[0]),'');     // show the dialog instantly; the reading fills in below
+  const myResolve=modalResolve;                          // identity of THIS dialog (don't clobber a later one)
+  const anim=setInterval(()=>{ if(modalResolve===myResolve) $('modalMsg').textContent=tr('cal_prompt',FR[fi=(fi+1)%FR.length]); },180);
+  readVoltage(VSETTLE).then(()=>{ clearInterval(anim); if(modalResolve===myResolve) $('modalMsg').textContent=tr('cal_prompt',$('volt').textContent); });
+  const ans=await promise;
+  clearInterval(anim);                                   // stop the animation if the user closes early
   if(ans===null)return;
-  const val=parseFloat(String(ans).replace(',','.'));
+  const val=parseFloat(String(ans).replace(/,/g,'.'));   // accept both comma and dot as decimal separator
   if(!(val>0)){ log(tr('cal_bad'),'warn'); return; }
   flushRx(); await send('T'+Math.round(val*100)+'\n');   // centivolts (firmware parses integer → stays small on ATmega168)
   const t=await readTextUntil(['CAL=','ERR'],2500); const m=t.match(/CAL=([\d.]+)/);
@@ -2315,7 +2376,7 @@ async function burn(){
   if(!fileData){log(tr('need_bin'),'warn');return;}
   if(!fwOk){log(tr('fw_block',MIN_FW),'err');return;}   // refuse to burn unless Nichrome >= MIN_FW
   const n=chip().size;
-  if(!confirm(tr('burn_confirm',n)))return;
+  if(!(await uiConfirm(tr('burn_confirm',n),true)))return;
   const p=getParams();
   log(tr('burn_set',p),'warn');
   await sendSetParams(p);
