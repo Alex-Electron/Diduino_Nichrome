@@ -48,8 +48,8 @@
   button.danger:hover:not(:disabled){background:#241700;border-color:var(--amber);box-shadow:0 0 10px rgba(255,176,0,.35)}
   .led{width:11px;height:11px;border-radius:50%;background:#3a0000;box-shadow:0 0 8px #f00;display:inline-block}
   .led.on{background:var(--green);box-shadow:0 0 10px var(--green)}
-  @keyframes hbpulse{0%{transform:scale(1);background:var(--green)}35%{transform:scale(2.3);background:#eafff0;box-shadow:0 0 22px var(--green),0 0 8px #fff}100%{transform:scale(1);background:var(--green)}}
-  .led.beat{animation:hbpulse .7s ease}
+  @keyframes hbpulse{0%{transform:scale(1)}45%{transform:scale(1.6);box-shadow:0 0 16px var(--green)}100%{transform:scale(1)}}
+  .led.beat{animation:hbpulse .5s ease}
   .stat{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
   .big{font-size:22px;font-weight:700}
   .label{color:var(--green-dim);font-size:11px;letter-spacing:1px}
@@ -91,7 +91,7 @@
 <div class="wrap">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
     <div>
-      <h1>DIDUINO NICHROME <span style="font-size:12px;color:var(--green-dim)">app&nbsp;v0.8.5</span><span class="cur">_</span></h1>
+      <h1>DIDUINO NICHROME <span style="font-size:12px;color:var(--green-dim)">app&nbsp;v0.8.6</span><span class="cur">_</span></h1>
       <div class="sub"><span data-i18n="sub">Web Serial · прошивка: Diduino_Nichrome.ino · КР556РТ4 (256×4)</span> · <a href="https://github.com/Alex-Electron/Diduino_Nichrome" target="_blank" rel="noopener" style="color:var(--green);text-decoration:underline;text-shadow:0 0 4px rgba(0,255,65,.45)">github.com/Alex-Electron/Diduino_Nichrome ↗</a></div>
     </div>
     <button id="lang" style="padding:6px 12px">EN</button>
@@ -2134,7 +2134,7 @@ let busy=false, hbTimer=null, hbMiss=0;   // serial mutex + heartbeat state
 function setOnline(on){$('led').classList.toggle('on',on);$('connState').textContent=on?'ONLINE':'OFFLINE';
   $('btnConnect').disabled=on;$('btnDisconnect').disabled=!on;
   $('btnFlash').disabled=false;        // flashing is always available (offline → requests a port itself)
-  if(on){ if(!hbTimer) hbTimer=setInterval(heartbeat,4000); }                 // start the keep-alive heartbeat
+  if(on){ if(!hbTimer) hbTimer=setInterval(heartbeat,3000); }                 // start the keep-alive heartbeat (3s)
   else { clearInterval(hbTimer); hbTimer=null; hbMiss=0; $('led').classList.remove('beat'); }
   updateOps();}
 // serialize bus access: an operation blocks overlap and pauses the heartbeat; a click while busy is ignored
