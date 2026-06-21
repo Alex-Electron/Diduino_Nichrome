@@ -48,6 +48,8 @@
   button.danger:hover:not(:disabled){background:#241700;border-color:var(--amber);box-shadow:0 0 10px rgba(255,176,0,.35)}
   .led{width:11px;height:11px;border-radius:50%;background:#3a0000;box-shadow:0 0 8px #f00;display:inline-block}
   .led.on{background:var(--green);box-shadow:0 0 10px var(--green)}
+  @keyframes hbpulse{0%{transform:scale(1)}45%{transform:scale(1.6);box-shadow:0 0 16px var(--green)}100%{transform:scale(1)}}
+  .led.beat{animation:hbpulse .5s ease}
   .stat{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
   .big{font-size:22px;font-weight:700}
   .label{color:var(--green-dim);font-size:11px;letter-spacing:1px}
@@ -89,7 +91,7 @@
 <div class="wrap">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
     <div>
-      <h1>DIDUINO NICHROME <span style="font-size:12px;color:var(--green-dim)">app&nbsp;v0.8.3</span><span class="cur">_</span></h1>
+      <h1>DIDUINO NICHROME <span style="font-size:12px;color:var(--green-dim)">app&nbsp;v0.8.4</span><span class="cur">_</span></h1>
       <div class="sub"><span data-i18n="sub">Web Serial · прошивка: Diduino_Nichrome.ino · КР556РТ4 (256×4)</span> · <a href="https://github.com/Alex-Electron/Diduino_Nichrome" target="_blank" rel="noopener" style="color:var(--green);text-decoration:underline;text-shadow:0 0 4px rgba(0,255,65,.45)">github.com/Alex-Electron/Diduino_Nichrome ↗</a></div>
     </div>
     <button id="lang" style="padding:6px 12px">EN</button>
@@ -1986,7 +1988,7 @@ function setLang(l){lang=l;document.querySelectorAll('[data-i18n]').forEach(e=>{
 // log-message dictionary (firmware stays an English protocol; the app localises everything the user sees)
 const MSG={
  ru:{port_open:'порт открыт, сброс Arduino…',fw_bad:'⚠ баннер не Diduino_Nichrome — залей Diduino_Nichrome.ino',fw_need:'нужна Diduino_Nichrome.ino',fw_old:(v,min)=>'⚠ прошивка Nichrome v'+v+' устарела — нужна ≥ '+min+'. Прожиг заблокирован.',fw_block:(min)=>'прожиг заблокирован: нужна прошивка Nichrome ≥ '+min,connected:'подключено',
-  conn_fail:e=>'ошибка подключения: '+e,disconnected:'отключено',no_ws:'Web Serial недоступен — нужен Chrome/Edge',
+  conn_fail:e=>'ошибка подключения: '+e,disconnected:'отключено',hb_lost:'⚠ связь с платой потеряна (нет ответа) — отключено',no_ws:'Web Serial недоступен — нужен Chrome/Edge',
   volt:v=>'Vpp = '+v+' В',no_v:'нет ответа на v',settings:p=>`настройки: имп=${p.imp} t=${p.len}мкс duty=${p.duty}% soak=${p.soak} p${p.lvl}`,
   cal_prompt:cur=>'Калибровка Vpp.\nПлата СЕЙЧАС показывает '+cur+' В на текущем уровне.\nМеряй мультиметром НА ПЛАТЕ Дидуино: между контактом перемычки H1 и землёй (GND). Перемычку можно не снимать.\nОБЯЗАТЕЛЬНО замерь это напряжение ПРЯМО СЕЙЧАС и введи измеренное (В, напр. 12.50):',cal_bad:'неверное значение — калибровка отменена',cal_done:c=>'✓ калибровка сохранена в EEPROM (C='+c+')',cal_noresp:'нет ответа на калибровку — нужна прошивка ≥ 0.6.0',cal_mismatch:(got,want)=>'⚠ после калибровки '+got+' В вместо ~'+want+' — прошивка на плате не совпала с приложением, перепрошей Nano (FLASH NANO) и повтори',
   reading:n=>'чтение '+n+' байт…',read_done:(n,nz)=>`прочитано ${n}, ненулевых ${nz}`,read_err:e=>'ошибка чтения: '+e,
@@ -2010,7 +2012,7 @@ const MSG={
   flash_ok:'*** ПРОШИВКА УСПЕШНА ***',flash_fail:e=>'*** ОШИБКА ПРОШИВКИ: '+e+' ***',flash_reboot:'перезапуск платы, чтение баннера…',
   file_none:'файл: —',fpill:(nm,n)=>'файл: '+nm+' ('+n+'б)',hex_none:'— нет данных —',src_file:'· показан ФАЙЛ',src_chip:'· показан ЧИП',src_split:'· ФАЙЛ ↔ ЧИП',crc_note:'РТ4 = 4 бита/ячейку: «4 бита» — данные на чипе (сверяй с ним), «сырой файл» — все 8 бит файла (как CRC сторонней утилиты по байтам)',crc_note_v:'сверка по 4 битам данных (старший нибл на чипе отсутствует)',l_raw:'сырой файл',l_f4:'файл (4 бита)',l_chip2:'чип',l_crc:'файл',tt_mism:(a,w,g)=>'@0x'+a+': ждали 0x'+w+', на чипе 0x'+g},
  en:{port_open:'port open, resetting Arduino…',fw_bad:'⚠ banner is not Diduino_Nichrome — flash Diduino_Nichrome.ino',fw_need:'need Diduino_Nichrome.ino',fw_old:(v,min)=>'⚠ Nichrome firmware v'+v+' is too old — need ≥ '+min+'. Burn disabled.',fw_block:(min)=>'burn blocked: need Nichrome firmware ≥ '+min,connected:'connected',
-  conn_fail:e=>'connect failed: '+e,disconnected:'disconnected',no_ws:'Web Serial unavailable — use Chrome/Edge',
+  conn_fail:e=>'connect failed: '+e,disconnected:'disconnected',hb_lost:'⚠ lost contact with the board (no reply) — disconnected',no_ws:'Web Serial unavailable — use Chrome/Edge',
   volt:v=>'Vpp = '+v+' V',no_v:'no reply to v',settings:p=>`settings: pulses=${p.imp} t=${p.len}us duty=${p.duty}% soak=${p.soak} p${p.lvl}`,
   cal_prompt:cur=>'Vpp calibration.\nThe board reads '+cur+' V NOW at the current level.\nMeasure with a multimeter ON THE Diduino BOARD: between the H1 jumper pin and ground (GND). The jumper can stay in place.\nYou MUST measure this voltage RIGHT NOW and enter the measured value (V, e.g. 12.50):',cal_bad:'invalid value — calibration cancelled',cal_done:c=>'✓ calibration saved to EEPROM (C='+c+')',cal_noresp:'no calibration response — needs firmware ≥ 0.6.0',cal_mismatch:(got,want)=>'⚠ after calibration '+got+' V instead of ~'+want+' — board firmware did not match the app, re-flash the Nano (FLASH NANO) and retry',
   reading:n=>'reading '+n+' bytes…',read_done:(n,nz)=>`read ${n}, non-zero ${nz}`,read_err:e=>'read error: '+e,
@@ -2128,10 +2130,28 @@ async function connect(){
   }catch(e){log(tr('conn_fail',e),'err');}
 }
 async function disconnect(){keepReading=false;try{await reader.cancel();reader.releaseLock();}catch(e){}try{writer.releaseLock();}catch(e){}try{await port.close();}catch(e){}port=writer=reader=null;fwOk=false;fwChips=null;setOnline(false);updateOps();log(tr('disconnected'));}
+let busy=false, hbTimer=null, hbMiss=0;   // serial mutex + heartbeat state
 function setOnline(on){$('led').classList.toggle('on',on);$('connState').textContent=on?'ONLINE':'OFFLINE';
   $('btnConnect').disabled=on;$('btnDisconnect').disabled=!on;
   $('btnFlash').disabled=false;        // flashing is always available (offline → requests a port itself)
+  if(on){ if(!hbTimer) hbTimer=setInterval(heartbeat,4000); }                 // start the keep-alive heartbeat
+  else { clearInterval(hbTimer); hbTimer=null; hbMiss=0; $('led').classList.remove('beat'); }
   updateOps();}
+// serialize bus access: an operation blocks overlap and pauses the heartbeat; a click while busy is ignored
+async function runExclusive(fn){ if(busy) return; busy=true; try{ return await fn(); } finally{ busy=false; } }
+function pulseLed(){ const l=$('led'); l.classList.remove('beat'); void l.offsetWidth; l.classList.add('beat'); }   // one "breath" per OK heartbeat
+// heartbeat: when idle, ping the board ('v') and confirm a reply; 2 misses → board gone → auto-disconnect.
+// the Web Serial 'disconnect' event (below) catches a clean unplug instantly; this also catches a hung/silent board.
+async function heartbeat(){
+  if(!port||!fwOk||busy) return;                 // never touch the bus mid-operation (no false miss during a long burn)
+  busy=true; let ok=false;
+  try{ flushRx(); await send('v\n'); const m=(await readTextUntil(['Vpp='],1200)).match(/Vpp=([\d.]+)/);
+    if(m){ ok=true; $('volt').textContent=m[1]; } }
+  catch(e){}
+  finally{ busy=false; }
+  if(ok){ hbMiss=0; pulseLed(); }
+  else if(++hbMiss>=2){ log(tr('hb_lost'),'err'); await disconnect(); }
+}
 
 /* ───────────────── Web-Serial Arduino-Nano flasher (STK500v1, no deps) ─────────────────
    Reuses the session reader/writer/rxq. Reopens the port to probe bootloader bauds, drives
@@ -2540,9 +2560,12 @@ function updateOps(){const ready=!!port&&fwOk, can=ready&&chipSupported();
   $('btnBurn').disabled=!(can&&fileData);
   $('btnSave').disabled=!(can&&chipData);}
 
-$('btnConnect').onclick=connect;$('btnDisconnect').onclick=disconnect;$('btnVolt').onclick=readVoltage;$('btnCal').onclick=calibrate;
-$('btnRead').onclick=readChip;$('btnBlank').onclick=blankCheck;$('btnSave').onclick=saveBin;
-$('btnVerify').onclick=verify;$('btnBurn').onclick=burn;$('btnSet').onclick=sendSettings;$('btnFlash').onclick=()=>flashNano();
+// all serial ops go through runExclusive → no overlap with each other or the heartbeat (saveBin/hexView are local, unwrapped)
+$('btnConnect').onclick=()=>runExclusive(connect);$('btnDisconnect').onclick=()=>runExclusive(disconnect);$('btnVolt').onclick=()=>runExclusive(()=>readVoltage());$('btnCal').onclick=()=>runExclusive(calibrate);
+$('btnRead').onclick=()=>runExclusive(readChip);$('btnBlank').onclick=()=>runExclusive(blankCheck);$('btnSave').onclick=saveBin;
+$('btnVerify').onclick=()=>runExclusive(verify);$('btnBurn').onclick=()=>runExclusive(burn);$('btnSet').onclick=()=>runExclusive(sendSettings);$('btnFlash').onclick=()=>runExclusive(()=>flashNano());
+// Web Serial: device physically unplugged → drop to OFFLINE immediately (no stale ONLINE)
+if('serial'in navigator) navigator.serial.addEventListener('disconnect',e=>{ if(port&&e.target===port) disconnect(); });
 $('btnHexView').onclick=()=>{verifySplit=!verifySplit;$('btnHexView').textContent=verifySplit?'⇄ single view':'⇄ split view';if(verifyActive)showVerify();};
 async function applyChipUI(){ $('chipPill').textContent=$('chipSel').selectedOptions[0].textContent;   // sync the panel pill
   $('hiFwrap').style.display=nib()?'inline-flex':'none';   // BDI nibble option is РТ4-only
@@ -2551,7 +2574,7 @@ async function applyChipUI(){ $('chipPill').textContent=$('chipSel').selectedOpt
   if(port&&fwOk){ if(fwChips) await selectChip();                  // push selection to the board (H-capable fw); else rely on the connect-time probe
     if(!chipSupported()){ log(tr('re3_need_fw'),'err'); await uiConfirm(tr('re3_need_fw'),true); } }
   updateOps(); }
-$('chipSel').onchange=applyChipUI;
+$('chipSel').onchange=()=>runExclusive(applyChipUI);
 $('btnFile').onclick=()=>{$('file').value='';$('file').click();};$('file').onchange=e=>{if(e.target.files[0])loadFile(e.target.files[0]);};
 $('lang').onclick=()=>setLang(lang==='ru'?'en':'ru');setLang('ru');
 log(tr('ready'),'ok');
