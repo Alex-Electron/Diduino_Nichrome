@@ -91,7 +91,7 @@
 <div class="wrap">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
     <div>
-      <h1>DIDUINO NICHROME <span style="font-size:12px;color:var(--green-dim)">app&nbsp;v0.8.7</span><span class="cur">_</span></h1>
+      <h1>DIDUINO NICHROME <span style="font-size:12px;color:var(--green-dim)">app&nbsp;v0.8.8</span><span class="cur">_</span></h1>
       <div class="sub"><span data-i18n="sub">Web Serial · прошивка: Diduino_Nichrome.ino · КР556РТ4 (256×4)</span> · <a href="https://github.com/Alex-Electron/Diduino_Nichrome" target="_blank" rel="noopener" style="color:var(--green);text-decoration:underline;text-shadow:0 0 4px rgba(0,255,65,.45)">github.com/Alex-Electron/Diduino_Nichrome ↗</a></div>
     </div>
     <button id="lang" style="padding:6px 12px">EN</button>
@@ -2574,7 +2574,9 @@ async function applyChipUI(){ $('chipPill').textContent=$('chipSel').selectedOpt
   const d=chip().def; $('level').value=d.lvl; $('pImp').value=d.imp; $('pLen').value=d.len; $('pDuty').value=d.duty; $('pSoak').value=d.soak;   // per-chip program defaults incl. Vpp level (РТ4 p1 / РЕ3 p0)
   if(verifyActive)showVerify(); else renderHex(hexShown,hexMark);   // re-render HEX/CRC in the new chip's width
   if(port&&fwOk){ if(fwChips) await selectChip();                  // push selection to the board (H-capable fw); else rely on the connect-time probe
-    if(!chipSupported()){ log(tr('re3_need_fw'),'err'); await uiConfirm(tr('re3_need_fw'),true); } }
+    if(!chipSupported()){ log(tr('re3_need_fw'),'err'); await uiConfirm(tr('re3_need_fw'),true); }
+    else { flushRx(); await send('p'+d.lvl+'\n'); const m=(await readTextUntil(['Vpp='],2500)).match(/Vpp=([\d.]+)/); if(m)$('volt').textContent=m[1]; }   // set the board to the chip's default level so the live Vpp matches the selection (H/safeState left it at p0)
+  }
   updateOps(); }
 $('chipSel').onchange=()=>runExclusive(applyChipUI);
 $('btnFile').onclick=()=>{$('file').value='';$('file').click();};$('file').onchange=e=>{if(e.target.files[0])loadFile(e.target.files[0]);};
