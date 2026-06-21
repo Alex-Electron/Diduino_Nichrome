@@ -1,8 +1,11 @@
-# Arduino build output (the firmware is embedded into docs/diduino_nichrome.html by build-hex.ps1,
-# so the standalone .hex artifacts are local build outputs only — not committed)
+# Arduino build output (the firmware is embedded into docs/diduino_nichrome.html by the local
+# build script, so the standalone .hex artifacts are local build outputs only — not committed)
 build/
 *.hex
 *.elf
+
+# Maintainer-only build script — kept local, not published
+firmware/build-hex.ps1
 
 # OS / editor cruft
 .DS_Store

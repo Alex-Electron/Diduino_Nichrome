@@ -2,7 +2,7 @@
 
 **English** · [Русский](./README.ru.md)
 
-Firmware and a browser-based programmer for the Soviet bipolar fuse-PROM **КР556РТ4** (256×4 bit, one-time programmable).
+Firmware and a browser-based programmer for the Soviet bipolar fuse-PROMs **КР556РТ4** (256×4) and **К155РЕ3** (32×8) — one-time programmable. Pick the chip in the app; the firmware drives each one correctly.
 
 This is a continuation of the open **Diduino** project. The hardware is unchanged; what is new here is a rewritten host application that runs in the browser and a burn routine built to not destroy a chip when something goes slightly wrong.
 
@@ -10,9 +10,9 @@ This is a continuation of the open **Diduino** project. The hardware is unchange
 
 ![license](https://img.shields.io/badge/license-BSD--2--Clause-blue)
 ![platform](https://img.shields.io/badge/board-Arduino%20Nano-00979D?logo=arduino&logoColor=white)
-![chip](https://img.shields.io/badge/chip-KR556RT4%20256x4-success)
+![chip](https://img.shields.io/badge/chips-KR556RT4%20%7C%20K155RE3-success)
 ![ui](https://img.shields.io/badge/host-Web%20Serial-1aff80)
-![fw](https://img.shields.io/badge/firmware-v0.6.0-orange)
+![fw](https://img.shields.io/badge/firmware-v0.7.1-orange)
 
 **▶ Open the programmer:** <https://alex-electron.github.io/Diduino_Nichrome/diduino_nichrome.html> — runs in Chrome or Edge, nothing to install. (GitHub Pages serves it over HTTPS, which is what Web Serial needs.)
 
@@ -61,22 +61,26 @@ Diduino_Nichrome/
 ├── README.ru.md             # Russian
 ├── LICENSE
 ├── firmware/
-│   ├── Diduino_Nichrome/
-│   │   └── Diduino_Nichrome.ino   # Arduino sketch (the folder name must match the .ino)
-│   └── build-hex.ps1              # compiles both MCUs and embeds the firmware into the page below
+│   └── Diduino_Nichrome/
+│       └── Diduino_Nichrome.ino   # Arduino sketch (the folder name must match the .ino)
 └── docs/
     └── diduino_nichrome.html      # the browser programmer + embedded firmware (GitHub Pages, HTTPS)
 ```
 
 ---
 
-## The chip: КР556РТ4
+## The chips: КР556РТ4 and К155РЕ3
 
-A Soviet bipolar PROM with nichrome fuse links, 256 words of 4 bits, an analog of the 82S129.
+Two Soviet bipolar PROMs with nichrome fuse links. Pick the one in the socket from the **CHIP** selector in the app.
+
+- **КР556РТ4** — 256 words × 4 bits (analog of the 82S129).
+- **К155РЕ3** — 32 words × 8 bits (analog of the 74188 / 82S23).
+
+Both share the same one-time fuse behaviour:
 
 - The fuses are **one-way**: a bit can go 0 → 1, never back. A blank chip reads all zeros.
-- Programming needs an elevated voltage (~12.5 V) on a data pin while Vcc stays at 5 V.
-- Because it is one-time, you get exactly one attempt per chip. The point of this project is to make that one attempt count.
+- Programming needs an elevated voltage (~11–12.5 V) while Vcc stays at 5 V. РТ4 burns at ~12.5 V (p1); К155РЕ3 is sample-sensitive — it starts lower (~11.6 V, p0) and the level can be raised step by step for stubborn bits.
+- Because they are one-time, you get exactly one attempt per chip. The point of this project is to make that one attempt count.
 
 ---
 
@@ -84,8 +88,9 @@ A Soviet bipolar PROM with nichrome fuse links, 256 words of 4 bits, an analog o
 
 1. **Open the app.** Open the [hosted programmer](https://alex-electron.github.io/Diduino_Nichrome/diduino_nichrome.html) in Chrome or Edge (or `docs/diduino_nichrome.html` locally). Click CONNECT and pick the board's COM port.
 2. **Firmware.** If the board isn't running Diduino_Nichrome (or it's too old), the operations stay locked and the app offers **[ ⟳ FLASH NANO ]** — it flashes the firmware straight from the browser over Web Serial (no Arduino IDE), reading the chip signature and picking the build that matches it (ATmega328P or ATmega168). You can instead upload `firmware/Diduino_Nichrome/Diduino_Nichrome.ino` from the Arduino IDE yourself. The header then confirms the firmware version, and the current Vpp is read automatically.
-3. **Read or burn.**
-   - `READ` pulls all 256 nibbles and shows them as hex, with a CRC-32.
+3. **Pick the chip.** Choose КР556РТ4 or К155РЕ3 in the **CHIP** selector (top bar). Loading a `.bin` whose size matches the other chip offers to switch for you.
+4. **Read or burn.**
+   - `READ` pulls the whole chip (256 nibbles for РТ4, 32 bytes for РЕ3) and shows them as hex, with a CRC-32.
    - `LOAD` opens a `.bin`; the same hex view and CRC appear for the file.
    - `BURN` programs the chip. It only goes ahead if the chip is compatible and the transfer checksum matches, then it verifies every cell on the board.
 
@@ -114,14 +119,15 @@ The burn is gated so that the usual ways to wreck a chip are caught before any v
 | Command | Meaning |
 |---------|---------|
 | `?` | help |
+| `H<n>` | select chip: `H0` = КР556РТ4, `H1` = К155РЕ3 (`H` = query) |
 | `v` | read the programming voltage (Vpp) |
-| `p<n>` | set boost level 0–7 (p1 ≈ 12.5 V for РТ4) |
+| `p<n>` | set boost level 0–7 (РТ4 p1 ≈ 12.5 V, РЕ3 p0 ≈ 11.6 V; burn floors at the chip default) |
 | `I<n>` | max pulses per bit (default 1000) |
 | `L<n>` | pulse width in µs (default 40) |
 | `D<n>` | duty %, sets the pause between pulses (default 10) |
-| `S<n>` | soak pulses after a bit takes (default 50, capped at 128) |
-| `R` | read the whole chip, 256 raw bytes |
-| `B` | burn: stream 256 bytes, then the CRC gate, checks and verify |
+| `S<n>` | soak pulses after a bit takes (РТ4 50, РЕ3 8; capped at 128) |
+| `R` | read the whole chip (РТ4 256 nibbles, РЕ3 32 bytes) |
+| `B` | burn: stream the chip's bytes, then the CRC gate, checks and verify |
 | `T<cV>` | calibrate Vpp to a meter reading, saved in EEPROM (centivolts, e.g. `T1250`; see [Voltage calibration](#voltage-calibration)) |
 | `j` | safe state |
 
