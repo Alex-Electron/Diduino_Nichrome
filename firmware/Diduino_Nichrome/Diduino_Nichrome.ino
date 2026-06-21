@@ -1,11 +1,12 @@
 //===========================================================================
-//  DIDUINO NICHROME  v0.6.0
-//  Programmer firmware for Soviet bipolar (fusible-link) PROM КР556РТ4 (256x4).
+//  DIDUINO NICHROME  v0.7.1
+//  Programmer firmware for Soviet bipolar (fusible-link) PROMs:
+//    КР556РТ4 (256x4)  and  К155РЕ3 (32x8).  Select with H0 (РТ4, default) / H1 (РЕ3).
 //  Arduino Nano (ATmega328P) + boost board "DID_PROG" (rev 1.1/1.2).
 //
-//  Burn protocol: host streams 256 bytes; firmware checksum-gates the transfer,
+//  Burn protocol: host streams chip.words bytes; firmware checksum-gates the transfer,
 //  programs with verify-per-bit, then re-reads & verifies the whole chip on-board.
-//  Serial 115200 8N1. Commands (Enter-terminated): v · p<n> · I/L/D/S · R · B · T · j · ?
+//  Serial 115200 8N1. Commands (Enter-terminated): H<n> · v · p<n> · I/L/D/S · R · B · T · j · ?
 //  Also a diagnostic set for board bring-up: a/c/m/f/g/e/k/W.  (no command uses both letter cases)
 //
 //  Based on the Diduino programmer (BSD-2-Clause):
@@ -33,7 +34,7 @@
 #define DS_POWER 8      // DS18B20 power (unused here, kept LOW)
 #define LED 13
 #define FW_NAME "DIDUINO NICHROME"
-#define FW_VERSION "0.6.0"
+#define FW_VERSION "0.7.1"
 
 // programming-voltage feedback shift register (boost level), pins per original
 #define PWR_DATA 10
@@ -61,6 +62,17 @@ uint16_t prog_imp = 1000;   // BURN: max pulses per bit
 uint16_t prog_len = 40;     // BURN: pulse width, us
 uint8_t  prog_duty = 10;    // BURN: duty % (recovery = len*(100/duty) us)
 uint16_t prog_soak = 50;    // BURN: extra over-program (soak) pulses after a bit takes
+
+//--- chip model -----------------------------------------------------------
+// Everything chip-specific lives here so the read/blank/burn/verify paths stay generic.
+// Verified against the original Diduino (cs_set/read_byte/write_byte): РЕ3 differs from РТ4
+// ONLY in width (8 vs 4 bits) and size (32 vs 256 words). CS polarity, inverted sense, the
+// 0->1 blow direction and the pulse mechanics are identical and inherited from the РТ4 path.
+struct ChipDef { uint16_t words; uint8_t bits; uint8_t vpp; const char* name; };
+const ChipDef CHIP_RT4 = {256, 4, 1, "RT4"};   // КР556РТ4 256x4, program at p1 (~12.5V)
+const ChipDef CHIP_RE3 = {32,  8, 0, "RE3"};   // К155РЕ3  32x8,  program at p0 (~11.6V); РЕ3 likes a lower, adjustable Vpp
+ChipDef chip = CHIP_RT4;                        // current selection (default РТ4 = previous behavior)
+#define DMASK ((byte)((1u<<chip.bits)-1))       // data mask: 0x0F for РТ4, 0xFF for РЕ3
 
 //--- low-level (verbatim logic from original firmware) ---------------------
 void init_power(){
@@ -92,6 +104,14 @@ void set_mux(uint8_t m){
   digitalWrite(AR0, (curMux>>0)&1);
   digitalWrite(AR1, (curMux>>1)&1);
   digitalWrite(AR2, (curMux>>2)&1);
+}
+// Read the data word at the CURRENT address (shift_data), chip.bits wide, inverted sense
+// (logical 1 = READ pin low) — exactly the per-bit sequence the original used, factored out
+// of the 5 places that duplicated it. Caller sets shift_data first.
+byte readData(){
+  byte out=0;
+  for(uint8_t j=0;j<chip.bits;j++){ set_mux(j); load_shift(); delayMicroseconds(40); out|=(!digitalRead(READ))<<j; }
+  return out;
 }
 // one averaged 10-bit ADC reading on channel `mux`, reference = AVcc (REFS0)
 uint16_t adcRead(uint8_t mux){
@@ -140,12 +160,13 @@ void help(){
   Serial.println(F("p<0-7> Vpp/boost level (RAISES voltage! socket must be EMPTY)"));
   Serial.println(F("m<0-7> data-bit mux select (which data line routed)"));
   Serial.println(F("f     read current READ pin (raw + logical)"));
-  Serial.println(F("g     read all 4 RT4 data bits at current address"));
+  Serial.println(F("g     read all data bits at current address (chip.bits wide)"));
   Serial.println(F("e<ms> energize Vpp on selected data bit for ms then release"));
   Serial.println(F("k     walk: each address line HIGH one-by-one (scope), 800ms each"));
   Serial.println(F("v     measure Vpp (internal voltmeter)"));
   Serial.println(F("T<cV> calibrate Vpp, centivolts e.g.1250=12.50V (EEPROM); T0 reset; T query"));
   Serial.println(F("j     SAFE state (addr0, CS read, WRITE low, level0)"));
+  Serial.println(F("H<n>  select chip: H0=КР556РТ4 (256x4), H1=К155РЕ3 (32x8); H=query"));
   Serial.println(F("?     this help"));
   // note: no command uses both letter cases — upper/lower never collide (e.g. R/r, D/d, S/s are split apart)
 }
@@ -201,7 +222,7 @@ void loop(){
     case 'g':{                       // (was 'd'; split from 'D'=duty to avoid a case-pair)
       Serial.print(F("DATA bits @0x")); Serial.print(shift_data,HEX); Serial.print(F(": "));
       byte out=0;
-      for(uint8_t j=0;j<4;j++){ set_mux(j); delay(2);
+      for(uint8_t j=0;j<chip.bits;j++){ set_mux(j); delay(2);
         byte b=!digitalRead(READ); out|=b<<j;
         Serial.print(b); Serial.print(' '); }
       Serial.print(F(" = 0x")); Serial.println(out,HEX);
@@ -248,10 +269,10 @@ void loop(){
       // Program a 4-bit value at ADDRESS 0 (RT4), faithful to original write_byte:
       // 40us pulse / 800us recovery, up to 1000 pulses per bit, early-exit on readback.
       // Set the desired Vpp level with p<n> BEFORE calling this. Socket must hold a chip.
-      byte val = (byte)n & 0x0F;
+      byte val = (byte)n & DMASK;
       shift_data = 0;
       Serial.print(F("PROGRAM 0x")); Serial.print(val,HEX); Serial.println(F(" @ addr 0"));
-      for(uint8_t j=0;j<4;j++){
+      for(uint8_t j=0;j<chip.bits;j++){
         set_mux(j);
         digitalWrite(CS,HIGH); load_shift(); delayMicroseconds(50);
         byte want=(val>>j)&1; byte cur=!digitalRead(READ); int used=0;
@@ -270,21 +291,22 @@ void loop(){
       }
       digitalWrite(WRITE,LOW); digitalWrite(CS,HIGH);
       byte out=0;
-      for(uint8_t j=0;j<4;j++){ set_mux(j); load_shift(); delayMicroseconds(50); out|=(!digitalRead(READ))<<j; }
+      for(uint8_t j=0;j<chip.bits;j++){ set_mux(j); load_shift(); delayMicroseconds(50); out|=(!digitalRead(READ))<<j; }
       Serial.print(F("READBACK @0 = 0x")); Serial.println(out,HEX);
+      set_power(0);                  // drop the boost rail after the diagnostic — don't leave Vpp hot
       break; }
     case 'B':{
-      // Burn a full 256-nibble RT4 image. Usage: send "B\n" then exactly 256 raw bytes.
-      // Only low nibble of each byte is used (RT4 = 4 data bits); high nibble ignored.
-      // Set Vpp level with p<n> BEFORE (p1 = ~12.5V for RT4). Socket must hold a FRESH blank chip.
-      static byte img[256];
-      Serial.println(F("SEND 256 BYTES NOW..."));
+      // Burn the current chip's image. Usage: send "B\n" then exactly chip.words raw bytes
+      // (РТ4: 256, low nibble used; РЕ3: 32, full byte). DMASK masks per chip.
+      // Set the level with p<n> BEFORE (floored at the chip default: РТ4 p1, РЕ3 p0). Socket must hold a FRESH blank chip.
+      static byte img[256];   // sized for the largest chip (РТ4); РЕ3 uses the first 32
+      Serial.print(F("SEND ")); Serial.print(chip.words); Serial.println(F(" BYTES NOW..."));
       Serial.setTimeout(10000);
-      int got = Serial.readBytes(img, 256);
-      if(got != 256){ Serial.print(F("ERR: got ")); Serial.println(got); safeState(); endBurn(); break; }
+      int got = Serial.readBytes(img, chip.words);
+      if(got != chip.words){ Serial.print(F("ERR: got ")); Serial.println(got); safeState(); endBurn(); break; }
       // transfer-integrity CRC-32 (standard, matches HEX panel + external utilities); host gates burn on it
       uint32_t rxcrc=0xFFFFFFFFUL;
-      for(int i=0;i<256;i++){ rxcrc^=img[i]; for(uint8_t k=0;k<8;k++){ if(rxcrc&1) rxcrc=(rxcrc>>1)^0xEDB88320UL; else rxcrc>>=1; } }
+      for(int i=0;i<chip.words;i++){ rxcrc^=img[i]; for(uint8_t k=0;k<8;k++){ if(rxcrc&1) rxcrc=(rxcrc>>1)^0xEDB88320UL; else rxcrc>>=1; } }
       rxcrc=~rxcrc;
       Serial.print(F("RXCRC=0x")); Serial.println(rxcrc, HEX);
       while(Serial.available()) Serial.read();        // flush stale/pipelined bytes; the gate must reflect a post-CRC decision
@@ -307,29 +329,33 @@ void loop(){
       // PRE-BURN BLANK / COMPATIBILITY CHECK (fuses are one-way: cannot clear a set bit)
       { int bad=0;
         digitalWrite(WRITE,LOW); digitalWrite(CS,HIGH);
-        for(int addr=0; addr<256; addr++){
-          shift_data=(word)addr; load_shift();
-          byte chipv=0; for(uint8_t j=0;j<4;j++){ set_mux(j); load_shift(); delayMicroseconds(40); chipv|=(!digitalRead(READ))<<j; }
-          byte conflict = chipv & (~img[addr]) & 0x0F;   // chip has 1 where image wants 0
+        for(int addr=0; addr<chip.words; addr++){
+          shift_data=(word)addr;
+          byte chipv=readData();
+          byte conflict = chipv & (~img[addr]) & DMASK;   // chip has 1 where image wants 0
           if(conflict){ bad++; if(bad<=12){ Serial.print(F(" OVERBURN @0x")); Serial.print(addr,HEX);
-            Serial.print(F(" chip=0x")); Serial.print(chipv,HEX); Serial.print(F(" img=0x")); Serial.println(img[addr]&0x0F,HEX); } }
+            Serial.print(F(" chip=0x")); Serial.print(chipv,HEX); Serial.print(F(" img=0x")); Serial.println(img[addr]&DMASK,HEX); } }
         }
         if(bad){ Serial.print(F("NOT BLANK: ")); Serial.print(bad); Serial.println(F(" conflicting cells"));
           Serial.println(F("*** BURN ABORTED ***")); safeState(); endBurn(); break; }
         Serial.println(F("blank-check OK")); }
-      // establish & validate the RT4 program voltage — do NOT trust the operator's prior p<n>.
-      set_power(1); delay(300);                       // p1 = RT4 program level (~12.5V); let the boost settle
+      // program at the OPERATOR-selected level, but never BELOW the per-chip default (chip.vpp = floor):
+      // the app pre-fills the default (РТ4 p1 / РЕ3 p0) via 'p<n>' and the operator may raise it for stubborn
+      // РЕ3 bits (datasheet escalation +0.5V up to ~14V). The floor keeps РТ4 at >=p1 even without the app
+      // (a standalone burn can't silently under-volt), while escalation upward stays free.
+      uint8_t burnLevel = (curLevel >= chip.vpp) ? curLevel : chip.vpp;
+      set_power(burnLevel); delay(300);               // settle the boost at the chosen level
       { float vpp = get_voltage();
         Serial.print(F("Vpp(prog)=")); Serial.println(vpp,2);
         if(vpp < 8.0 || vpp > 17.0){                  // loose gate: catches dead boost / runaway, immune to calibration spread
           Serial.println(F("ERR: Vpp out of range (boost fault?)"));
           Serial.println(F("*** BURN ABORTED ***")); safeState(); endBurn(); break; } }
       long progged = 0;
-      for(int addr=0; addr<256; addr++){
+      for(int addr=0; addr<chip.words; addr++){
         if((addr & 0x0F)==0){ Serial.print(F("PROG ")); Serial.println(addr); }   // progress marker (host moves the bar)
         shift_data = (word)addr;
-        byte val = img[addr] & 0x0F;
-        for(uint8_t j=0;j<4;j++){
+        byte val = img[addr] & DMASK;
+        for(uint8_t j=0;j<chip.bits;j++){
           set_mux(j);
           digitalWrite(CS,HIGH); load_shift(); delayMicroseconds(40);
           byte want=(val>>j)&1; byte cur=!digitalRead(READ);
@@ -360,15 +386,14 @@ void loop(){
       set_power(0); delay(300);
       Serial.println(F("Vpp->p0 (verify)"));
       int mism=0;
-      for(int addr=0; addr<256; addr++){
+      for(int addr=0; addr<chip.words; addr++){
         if((addr & 0x0F)==0){ Serial.print(F("VERF ")); Serial.println(addr); }   // progress marker (verify phase)
-        shift_data=(word)addr; load_shift();
-        byte out=0;
-        for(uint8_t j=0;j<4;j++){ set_mux(j); load_shift(); delayMicroseconds(40); out|=(!digitalRead(READ))<<j; }
-        if(out != (img[addr]&0x0F)){
+        shift_data=(word)addr;
+        byte out=readData();
+        if(out != (img[addr]&DMASK)){
           mism++;
           if(mism<=12){ Serial.print(F(" MISMATCH @0x")); Serial.print(addr,HEX);
-            Serial.print(F(" want 0x")); Serial.print(img[addr]&0x0F,HEX);
+            Serial.print(F(" want 0x")); Serial.print(img[addr]&DMASK,HEX);
             Serial.print(F(" got 0x")); Serial.println(out,HEX); }
         }
       }
@@ -382,19 +407,26 @@ void loop(){
     case 'D': prog_duty=(uint8_t)(n<1?1:(n>99?99:n)); Serial.print(F("duty=")); Serial.println(prog_duty); break;
     case 'S': prog_soak=(uint16_t)(n<0?0:(n>128?128:n)); Serial.print(F("soak=")); Serial.println(prog_soak); break;
     case 'R':{
-      // Read whole RT4 (256 addr x 4 bit). Streams exactly 256 raw bytes (low nibble each).
+      // Read the whole chip. Streams exactly chip.words raw bytes (РТ4: low nibble each; РЕ3: full byte).
       digitalWrite(WRITE,LOW); digitalWrite(CS,HIGH);
-      for(int addr=0; addr<256; addr++){
-        shift_data=(word)addr; load_shift();
-        byte out=0;
-        for(uint8_t j=0;j<4;j++){ set_mux(j); load_shift(); delayMicroseconds(40); out|=(!digitalRead(READ))<<j; }
-        Serial.write(out);
+      for(int addr=0; addr<chip.words; addr++){
+        shift_data=(word)addr;
+        Serial.write(readData());
       }
       break; }
     case 'j':                        // (was 's'; split from 'S'=soak to avoid a case-pair)
       safeState();
       Serial.println(F("SAFE state set"));
       break;
+    case 'H':{                       // select chip / report. H0=РТ4, H1=РЕ3, H=query. Both letter cases are free.
+      if(n==0){ chip=CHIP_RT4; safeState(); }       // size/width changed → return the bus to a known safe state
+      else if(n==1){ chip=CHIP_RE3; safeState(); }
+      else if(n>1){ Serial.println(F("ERR: H0=RT4 H1=RE3")); break; }   // bad arg
+      // n<0 (bare 'H') = pure query: report the current chip WITHOUT disturbing the bus (lets the app probe)
+      Serial.print(F("CHIP=")); Serial.print(chip.name);
+      Serial.print(' '); Serial.print(chip.words); Serial.print('x'); Serial.println(chip.bits);
+      Serial.println(F("CHIPS=RT4,RE3"));   // capability advert: older РТ4-only firmware lacks this line → the app prompts a reflash
+      break; }
     case '?': default:
       help();
   }
