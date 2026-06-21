@@ -45,9 +45,9 @@ This repository adds only the new firmware and the web app. The license stays th
 
 The stock Diduino works. Three things made me redo the host side and the firmware anyway:
 
-1. **A web page you just open.** No Qt application to download, install or keep up to date. One self-contained HTML file, opened straight from disk in Chrome or Edge, talks to the board over Web Serial.
+1. **A web page you just open.** No Qt application to download, install or keep up to date. One self-contained HTML file, opened straight from disk in Chrome or Edge, talks to the board over Web Serial. Nothing else to set up.
 
-2. **A tighter, more reliable firmware.** The original sketch is a single read/write engine. I wanted the burn step itself to be defensive: check the chip before touching it, refuse a corrupted transfer, set the programming voltage on its own instead of trusting me to remember, and always leave the board in a safe state afterwards. КР556РТ4 is one-time programmable — a single wrong move ruins the part, so the firmware should catch the obvious mistakes instead of faithfully executing them.
+2. **A tighter, more reliable firmware.** The original sketch is a single read/write engine. I wanted the burn step itself to be defensive: check the chip before touching it, refuse a corrupted transfer, set the programming voltage on its own instead of trusting me to remember, and always leave the board in a safe state afterwards. These fuse PROMs are one-time programmable — a single wrong move ruins the part, so the firmware should catch the obvious mistakes instead of faithfully executing them.
 
 3. **Soak pulses.** A fuse link that just barely opened can read back as programmed and then "regrow" later. After a bit takes, the firmware now drives a few extra pulses into it (the datasheet allows 40–100) so the link is fully blown, not marginal. This came out of digging through the programming spec and is the main new idea on the burn side.
 
@@ -104,9 +104,9 @@ The burn is gated so that the usual ways to wreck a chip are caught before any v
 
 | Stage | What it does |
 |-------|--------------|
-| **Transfer + CRC-32** | The host streams 256 bytes; the board computes a CRC-32 and the host must send back its own expected CRC. If they differ, the burn is refused. A corrupted or wrong file cannot get through. |
+| **Transfer + CRC-32** | The host streams the chip's image (256 bytes for РТ4, 32 for РЕ3); the board computes a CRC-32 and the host must send back its own expected CRC. If they differ, the burn is refused. A corrupted or wrong file cannot get through. |
 | **Compatibility check** | The chip is read first. If any cell already holds a 1 where the image needs a 0 (impossible to undo on a fuse PROM), the burn aborts and lists the conflicts. A blank chip, or a re-burn of the same image onto a partly-programmed chip, passes. |
-| **Voltage check** | The board sets the program level (p1, ~12.5 V) itself and measures it. It will not pulse a fuse at the wrong voltage just because the level was left wrong. |
+| **Voltage check** | The board sets the program level itself — the per-chip default (РТ4 p1 ~12.5 V / РЕ3 p0 ~11.6 V), or higher if you raised it — and measures it. It will not pulse a fuse at the wrong voltage just because the level was left wrong. |
 | **Per-bit verify** | Each bit is pulsed and read back; pulsing stops as soon as the bit takes. |
 | **Soak** | A few extra pulses after the bit takes, so the link is fully blown. |
 | **Verify at rest** | The boost drops to its floor and the whole chip is re-read and compared to the image. |
@@ -139,11 +139,11 @@ There is also a diagnostic set for board bring-up (`a c m f g e k W`) used to te
 
 | Parameter | Command | Default | Notes |
 |-----------|---------|---------|-------|
-| Vpp level | `p` | p1 (~12.5 V) | the burn forces this itself |
+| Vpp level | `p` | РТ4 p1 (~12.5 V) / РЕ3 p0 (~11.6 V) | chip default; can be raised (РЕ3 escalation) |
 | pulses / bit | `I` | 1000 | upper limit; stops early when the bit takes |
 | pulse width | `L` | 40 µs | |
 | duty | `D` | 10 % | pause = width × 100 / duty |
-| soak | `S` | 50 | datasheet window is 40–100 |
+| soak | `S` | РТ4 50 / РЕ3 8 | РТ4 datasheet window 40–100; РЕ3 lower (heat-sensitive) |
 
 ---
 
@@ -177,11 +177,13 @@ The one thing the firmware can't know on its own is the *exact* value of that in
 
 The RCT computes a **CRC-32**, and it matches the **`file (4-bit)`** CRC-32 this app shows in the HEX panel (confirmed on hardware). So to verify a dump against the RCT, compare the RCT's checksum with the **`file (4-bit)`** value — not the `raw file` one (RT4 stores only the low 4 bits per cell, so the raw 8-bit CRC won't match the tester).
 
+К155РЕ3 (32×8) maps to the **74188 / 82S23** on the RCT, and its CRC is the single full-byte `file` value (no 4-bit split — that convention is РТ4-only).
+
 ---
 
 ## Safety notes
 
-КР556РТ4 is one-time programmable. Read these once:
+Both chips (КР556РТ4 and К155РЕ3) are one-time programmable. Read these once:
 
 - A burn is **irreversible**. Double-check the file and the chip first.
 - The high voltage only reaches the chip during the actual program pulses (gated by the WRITE line). Setting the level or reading the chip does not put it on the socket.
@@ -207,3 +209,4 @@ Co-author: AI.
 ## Contributors
 
 - **[pahan4](https://github.com/pahan4)** (Paul Leikam) — ideas behind the in-app firmware update (flashing the Arduino straight from the browser over Web Serial), embedding the firmware into the single HTML page (offline, self-contained), the split file ↔ chip verify view, the in-theme modal dialogs (replacing the browser's confirm/prompt), and the connection heartbeat (live link indicator + auto-disconnect when contact is lost).
+- **Andrey Golosov (ZX_RemX)** — testing the К155РЕ3 support on real hardware.
