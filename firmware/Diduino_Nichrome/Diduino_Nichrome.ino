@@ -34,7 +34,7 @@
 #define DS_POWER 8      // DS18B20 power (unused here, kept LOW)
 #define LED 13
 #define FW_NAME "DIDUINO NICHROME"
-#define FW_VERSION "0.7.0"
+#define FW_VERSION "0.7.1"
 
 // programming-voltage feedback shift register (boost level), pins per original
 #define PWR_DATA 10
@@ -339,8 +339,12 @@ void loop(){
         if(bad){ Serial.print(F("NOT BLANK: ")); Serial.print(bad); Serial.println(F(" conflicting cells"));
           Serial.println(F("*** BURN ABORTED ***")); safeState(); endBurn(); break; }
         Serial.println(F("blank-check OK")); }
-      // establish & validate the RT4 program voltage — do NOT trust the operator's prior p<n>.
-      set_power(chip.vpp); delay(300);                // per-chip program level (РТ4 p1 ~12.5V, РЕ3 p0 ~11.6V); let the boost settle
+      // program at the OPERATOR-selected level, but never BELOW the per-chip default (chip.vpp = floor):
+      // the app pre-fills the default (РТ4 p1 / РЕ3 p0) via 'p<n>' and the operator may raise it for stubborn
+      // РЕ3 bits (datasheet escalation +0.5V up to ~14V). The floor keeps РТ4 at >=p1 even without the app
+      // (a standalone burn can't silently under-volt), while escalation upward stays free.
+      uint8_t burnLevel = (curLevel >= chip.vpp) ? curLevel : chip.vpp;
+      set_power(burnLevel); delay(300);               // settle the boost at the chosen level
       { float vpp = get_voltage();
         Serial.print(F("Vpp(prog)=")); Serial.println(vpp,2);
         if(vpp < 8.0 || vpp > 17.0){                  // loose gate: catches dead boost / runaway, immune to calibration spread
