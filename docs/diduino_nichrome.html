@@ -177,7 +177,7 @@
   </div>
 </div>
 
-<!-- Embedded firmware (Intel HEX), injected by firmware/build-hex.ps1. Lets a single saved .html
+<!-- Embedded firmware (Intel HEX), injected by the maintainer's build script. Lets a single saved .html
      flash a board with no external files. Falls back to fetch / manual pick if these are empty. -->
 <script type="text/plain" id="fw-atmega328p" data-crc="0xAE02C551">
 :100000000C948F030C94B7030C94B7030C94B703B0
@@ -2183,12 +2183,12 @@ function pickHex(){
 }
 const mcuFromName=name=>{ const m=String(name).toLowerCase().match(/_(atmega\w+)\.hex$/); return m?m[1]:null; };  // MCU tag in our file names
 const flashMax=mcu=>mcu==='atmega168'?14336:30720;   // app space left by the bootloader (16K/32K minus bootloader)
-// firmware embedded in this page (<script type=text/plain id=fw-<mcu>>), injected by build-hex.ps1.
+// firmware embedded in this page (<script type=text/plain id=fw-<mcu>>), injected by the maintainer's build script.
 // Returns the Intel-HEX text or null (empty/placeholder) → caller falls back to fetch / manual pick.
 function embeddedHex(mcu){ const el=document.getElementById('fw-'+mcu); if(!el)return null; const t=el.textContent.replace(/\r/g,'').trim(); return t.includes(':')?t:null; }
 const anyEmbedded=()=>!!(embeddedHex('atmega328p')||embeddedHex('atmega168'));
 const crc32text=s=>{ const b=new Uint8Array(s.length); for(let i=0;i<s.length;i++)b[i]=s.charCodeAt(i)&0xFF; return crc32(b,b.length,false)>>>0; };  // standard CRC-32 over the text bytes
-// expected CRC-32 stamped into the embed by build-hex.ps1; null if absent (older/hand build → cannot verify)
+// expected CRC-32 stamped into the embed by the build script; null if absent (older/hand build → cannot verify)
 const embeddedCrc=mcu=>{ const el=document.getElementById('fw-'+mcu); return el?el.getAttribute('data-crc'):null; };
 
 // Intel-HEX → flat flash image (unwritten bytes = 0xFF, padded to a full page).
