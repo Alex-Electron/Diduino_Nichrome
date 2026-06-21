@@ -127,7 +127,7 @@
     <div class="hint" data-i18n="hint_ops">BURN: уровень Vpp p1, загрузи .bin, чип должен быть ЧИСТЫЙ.</div>
   </div>
 
-  <div class="panel"><h2>HEX <span id="hexsrc" class="label"></span><button id="btnHexView" disabled style="font-size:11px;padding:3px 8px;margin-left:10px;letter-spacing:0">⇄ split view</button></h2><div id="hexsum" style="white-space:pre;font-family:'Consolas','Courier New',monospace;font-size:13px;line-height:1.45;color:var(--amber);margin:3px 0"></div><div class="hint" id="hexnote"></div><div id="hex">— нет данных —</div></div>
+  <div class="panel"><h2>HEX <span id="hexsrc" class="label"></span><button id="btnHexView" disabled style="font-size:11px;padding:3px 8px;margin-left:10px;letter-spacing:0">⇄ single view</button></h2><div id="hexsum" style="white-space:pre;font-family:'Consolas','Courier New',monospace;font-size:13px;line-height:1.45;color:var(--amber);margin:3px 0"></div><div class="hint" id="hexnote"></div><div id="hex">— нет данных —</div></div>
   <details class="panel" id="chipPanel"><summary data-i18n="h_chip">Чип · напряжение · параметры прожига</summary>
     <div class="row" style="margin-bottom:12px;gap:26px;align-items:flex-end">
       <label class="fld"><span data-i18n="l_chip">микросхема</span><span class="pill">КР556РТ4 · 256×4</span></label>
@@ -1991,7 +1991,7 @@ const SIG_MCU={'1e950f':'atmega328p','1e9514':'atmega328p','1e9406':'atmega168',
 const SIG_NAME={'1e950f':'ATmega328P','1e9514':'ATmega328','1e9406':'ATmega168','1e940b':'ATmega168PA','1e9307':'ATmega8','1e930a':'ATmega88','1e930f':'ATmega88PA'};  // for the log only
 function vge(a,b){const p=String(a).split('.').map(Number),q=String(b).split('.').map(Number);for(let i=0;i<3;i++){const x=p[i]||0,y=q[i]||0;if(x>y)return true;if(x<y)return false;}return true;}
 let loadedName='',hexShown=null,hexMark=false;
-let verifySplit=false,verifyActive=false;   // verify view: split (file|chip) vs single grid; whether a verify result is on screen
+let verifySplit=true,verifyActive=false;    // verify view: split (file|chip) vs single grid; whether a verify result is on screen — split is the default
 let fileData=null,chipData=null;
 const chip=()=>RT4;
 const mask=v=>(v&0x0F);
