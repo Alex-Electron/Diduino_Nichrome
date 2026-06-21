@@ -91,7 +91,7 @@
 <div class="wrap">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
     <div>
-      <h1>DIDUINO NICHROME <span style="font-size:12px;color:var(--green-dim)">app&nbsp;v0.8.6</span><span class="cur">_</span></h1>
+      <h1>DIDUINO NICHROME <span style="font-size:12px;color:var(--green-dim)">app&nbsp;v0.8.7</span><span class="cur">_</span></h1>
       <div class="sub"><span data-i18n="sub">Web Serial · прошивка: Diduino_Nichrome.ino · КР556РТ4 (256×4)</span> · <a href="https://github.com/Alex-Electron/Diduino_Nichrome" target="_blank" rel="noopener" style="color:var(--green);text-decoration:underline;text-shadow:0 0 4px rgba(0,255,65,.45)">github.com/Alex-Electron/Diduino_Nichrome ↗</a></div>
     </div>
     <button id="lang" style="padding:6px 12px">EN</button>
@@ -2129,7 +2129,9 @@ async function connect(){
     }
   }catch(e){log(tr('conn_fail',e),'err');}
 }
-async function disconnect(){keepReading=false;try{await reader.cancel();reader.releaseLock();}catch(e){}try{writer.releaseLock();}catch(e){}try{await port.close();}catch(e){}port=writer=reader=null;fwOk=false;fwChips=null;setOnline(false);updateOps();log(tr('disconnected'));}
+async function disconnect(){const r=reader,w=writer,p=port;port=writer=reader=null;fwOk=false;fwChips=null;keepReading=false;   // null the globals FIRST so the heartbeat's !port guard trips immediately (no stray write during teardown)
+  try{if(r){await r.cancel();r.releaseLock();}}catch(e){}try{if(w)w.releaseLock();}catch(e){}try{if(p)await p.close();}catch(e){}
+  setOnline(false);updateOps();log(tr('disconnected'));}
 let busy=false, hbTimer=null, hbMiss=0;   // serial mutex + heartbeat state
 function setOnline(on){$('led').classList.toggle('on',on);$('connState').textContent=on?'ONLINE':'OFFLINE';
   $('btnConnect').disabled=on;$('btnDisconnect').disabled=!on;
@@ -2529,7 +2531,7 @@ function loadFile(f){const r=new FileReader();r.onload=async()=>{fileData=new Ui
   // soft suggestion (no hard logic): if the file size matches the OTHER chip, offer to switch — or keep as-is and load anyway
   const other=nib()?RE3:RT4, fl=fileData.length;
   if(fl===other.size && fl!==chip().size && await uiConfirm(tr('chip_suggest',fl,other.name,chip().name))){
-    $('chipSel').value=(other===RE3)?'re3':'rt4'; await applyChipUI();
+    $('chipSel').value=(other===RE3)?'re3':'rt4'; await runExclusive(applyChipUI);   // serialize the chip-switch (selectChip writes to the bus) — don't collide with an in-flight op
   }
   if(fileData.length<chip().size)log(tr('short_file',chip().size),'warn');setVerifyView(false);renderHex(fileData);updateOps();};r.readAsArrayBuffer(f);}
 function setFileName(){$('fileName').textContent=loadedName?tr('fpill',loadedName,(fileData?fileData.length:0)):tr('file_none');}

@@ -1,5 +1,5 @@
 //===========================================================================
-//  DIDUINO NICHROME  v0.7.0
+//  DIDUINO NICHROME  v0.7.1
 //  Programmer firmware for Soviet bipolar (fusible-link) PROMs:
 //    КР556РТ4 (256x4)  and  К155РЕ3 (32x8).  Select with H0 (РТ4, default) / H1 (РЕ3).
 //  Arduino Nano (ATmega328P) + boost board "DID_PROG" (rev 1.1/1.2).
@@ -296,9 +296,9 @@ void loop(){
       set_power(0);                  // drop the boost rail after the diagnostic — don't leave Vpp hot
       break; }
     case 'B':{
-      // Burn a full 256-nibble RT4 image. Usage: send "B\n" then exactly 256 raw bytes.
-      // Only low nibble of each byte is used (RT4 = 4 data bits); high nibble ignored.
-      // Set Vpp level with p<n> BEFORE (p1 = ~12.5V for RT4). Socket must hold a FRESH blank chip.
+      // Burn the current chip's image. Usage: send "B\n" then exactly chip.words raw bytes
+      // (РТ4: 256, low nibble used; РЕ3: 32, full byte). DMASK masks per chip.
+      // Set the level with p<n> BEFORE (floored at the chip default: РТ4 p1, РЕ3 p0). Socket must hold a FRESH blank chip.
       static byte img[256];   // sized for the largest chip (РТ4); РЕ3 uses the first 32
       Serial.print(F("SEND ")); Serial.print(chip.words); Serial.println(F(" BYTES NOW..."));
       Serial.setTimeout(10000);
