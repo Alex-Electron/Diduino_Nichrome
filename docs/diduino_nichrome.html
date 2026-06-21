@@ -2035,8 +2035,8 @@ const MSG={
   file_none:'file: —',fpill:(nm,n)=>'file: '+nm+' ('+n+' B)',hex_none:'— no data —',src_file:'· showing FILE',src_chip:'· showing CHIP',src_split:'· FILE ↔ CHIP',crc_note:'RT4 = 4 bits/cell: «4-bit» is the data on the chip (compare with it), «raw file» is all 8 bits of the file (what an external tool CRCs over bytes)',crc_note_v:'compared over the 4-bit data (high nibble is not present on the chip)',l_raw:'raw file',l_f4:'file (4-bit)',l_chip2:'chip',l_crc:'file',tt_mism:(a,w,g)=>'@0x'+a+': expected 0x'+w+', chip 0x'+g}
 };
 function tr(k,...a){let d=MSG[lang]||MSG.ru,m=d[k];if(m===undefined)m=MSG.ru[k];if(m===undefined)return k;return typeof m==='function'?m(...a):m;}
-const RT4={hsel:0,size:256,bits:4,name:'КР556РТ4',def:{imp:1000,len:40,duty:10,soak:50}};   // 256×4 (low nibble/byte)
-const RE3={hsel:1,size:32 ,bits:8,name:'К155РЕ3',def:{imp:1000,len:40,duty:10,soak:8}};      // 32×8 full byte; ~p0, lower soak (sample-sensitive, anti-overstress)
+const RT4={hsel:0,size:256,bits:4,name:'КР556РТ4',def:{lvl:1,imp:1000,len:40,duty:10,soak:50}};   // 256×4 (low nibble/byte), burn @ p1
+const RE3={hsel:1,size:32 ,bits:8,name:'К155РЕ3',def:{lvl:0,imp:1000,len:40,duty:10,soak:8}};      // 32×8 full byte, burn @ p0; soak/timing = draft pending К155РЕ3 datasheet
 const CHIPS={rt4:RT4,re3:RE3};
 let port=null,writer=null,reader=null,keepReading=false,rxq=[];
 let fwOk=false;                           // firmware confirmed = Nichrome AND >= MIN_FW
@@ -2546,7 +2546,7 @@ $('btnVerify').onclick=verify;$('btnBurn').onclick=burn;$('btnSet').onclick=send
 $('btnHexView').onclick=()=>{verifySplit=!verifySplit;$('btnHexView').textContent=verifySplit?'⇄ single view':'⇄ split view';if(verifyActive)showVerify();};
 async function applyChipUI(){ $('chipPill').textContent=$('chipSel').selectedOptions[0].textContent;   // sync the panel pill
   $('hiFwrap').style.display=nib()?'inline-flex':'none';   // BDI nibble option is РТ4-only
-  const d=chip().def; $('pImp').value=d.imp; $('pLen').value=d.len; $('pDuty').value=d.duty; $('pSoak').value=d.soak;   // per-chip program defaults (РЕ3 = lower soak)
+  const d=chip().def; $('level').value=d.lvl; $('pImp').value=d.imp; $('pLen').value=d.len; $('pDuty').value=d.duty; $('pSoak').value=d.soak;   // per-chip program defaults incl. Vpp level (РТ4 p1 / РЕ3 p0)
   if(verifyActive)showVerify(); else renderHex(hexShown,hexMark);   // re-render HEX/CRC in the new chip's width
   if(port&&fwOk){ if(fwChips) await selectChip();                  // push selection to the board (H-capable fw); else rely on the connect-time probe
     if(!chipSupported()){ log(tr('re3_need_fw'),'err'); await uiConfirm(tr('re3_need_fw'),true); } }
