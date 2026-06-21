@@ -2000,6 +2000,7 @@ const MSG={
   loaded:(nm,n)=>'загружен '+nm+', '+n+' б',short_file:n=>'⚠ файл короче '+n,ready:'готов. CONNECT → операции.',proto:'протокол: v · p<n> · I/L/D · R · B · s',
   fw_press_flash:v=>'⛔ операции заблокированы. Нажми [ ⟳ FLASH NANO ], чтобы обновить прошивку платы до Diduino_Nichrome v'+v+'.',
   flash_reok:v=>'Прошивка платы в порядке. Перепрошить Diduino_Nichrome v'+v+' всё равно?',
+  fw_update_offer:(cur,nw)=>'На плате прошивка Nichrome v'+cur+'. Доступна v'+nw+' (мультичип, поддержка К155РЕ3). Обновить сейчас?',
   flash_start:v=>'═══ ПРОШИВКА NANO: Diduino_Nichrome v'+v+' ═══',
   flash_embedded:mcu=>'прошивка взята из встроенной в страницу ('+mcu+')',flash_crcok:c=>'CRC-32 ок '+c,flash_corrupt:(mcu,got,want)=>'⛔ встроенная прошивка '+mcu+' ПОВРЕЖДЕНА (CRC-32 '+got+' ≠ '+want+') — НЕ шью, чтобы не убить чип',flash_badhex:ln=>'битый Intel-HEX (строка '+ln+') — отмена, чип не трогаю',flash_hexget:'получаю .hex…',flash_hexfetch:(u,n)=>'.hex по fetch ('+u+'): '+n+' б',flash_pickfirst:'file:// — выбери .hex под свою плату (MCU указан в имени; сверю с сигнатурой чипа)',flash_hexpicked:(nm,n)=>'.hex выбран: '+nm+' ('+n+' б)',flash_hexfail:'.hex не выбран — отмена',
   flash_sig:(c,b)=>'чип: '+c+' (сигнатура '+b+')',flash_unsupported:c=>'чип '+c+' не поддерживается — нет прошивки под него (нужен ATmega328P или ATmega168)',flash_mismatch:(p,c,need)=>'выбран .hex под '+p+', а на плате '+c+' — возьми '+need,flash_toobig:(n,m)=>'образ '+n+' б не влезает ('+m+' б доступно) — отмена',
@@ -2023,6 +2024,7 @@ const MSG={
   loaded:(nm,n)=>'loaded '+nm+', '+n+' B',short_file:n=>'⚠ file shorter than '+n,ready:'ready. CONNECT → operations.',proto:'protocol: v · p<n> · I/L/D · R · B · s',
   fw_press_flash:v=>'⛔ operations blocked. Press [ ⟳ FLASH NANO ] to update the board firmware to Diduino_Nichrome v'+v+'.',
   flash_reok:v=>'Board firmware is fine. Re-flash Diduino_Nichrome v'+v+' anyway?',
+  fw_update_offer:(cur,nw)=>'Board has Nichrome v'+cur+'. v'+nw+' is available (multi-chip, adds К155РЕ3). Update now?',
   flash_start:v=>'═══ FLASHING NANO: Diduino_Nichrome v'+v+' ═══',
   flash_embedded:mcu=>'using firmware embedded in the page ('+mcu+')',flash_crcok:c=>'CRC-32 ok '+c,flash_corrupt:(mcu,got,want)=>'⛔ embedded firmware '+mcu+' is CORRUPT (CRC-32 '+got+' ≠ '+want+') — refusing to flash, sparing the chip',flash_badhex:ln=>'corrupt Intel-HEX (line '+ln+') — aborted, chip untouched',flash_hexget:'fetching .hex…',flash_hexfetch:(u,n)=>'.hex via fetch ('+u+'): '+n+' B',flash_pickfirst:'file:// — pick the .hex for your board (MCU is in the name; checked against the chip signature)',flash_hexpicked:(nm,n)=>'.hex picked: '+nm+' ('+n+' B)',flash_hexfail:'no .hex selected — aborted',
   flash_sig:(c,b)=>'chip: '+c+' (signature '+b+')',flash_unsupported:c=>'chip '+c+' not supported — no firmware for it (need ATmega328P or ATmega168)',flash_mismatch:(p,c,need)=>'picked a '+p+' .hex but the board is '+c+' — use '+need,flash_toobig:(n,m)=>'image '+n+' B does not fit ('+m+' B available) — aborted',
@@ -2117,6 +2119,10 @@ async function connect(){
     const fw=detectFirmware(drainBanner());
     setOnline(true);log(tr('connected'),'ok');   // setOnline → updateOps gates every operation on fwOk
     if(fw.ok){ await selectChip(); updateOps(); await readVoltage(VSETTLE); }  // sync the board to the selected chip + capability, then read Vpp
+    // Compatible-but-older Nichrome → offer to update (modal). Incompatible/unknown fw → no modal: the red pill + disabled ops already inform.
+    if(fw.isNi && fw.ver && fw.ver!==FW_VER && vge(FW_VER,fw.ver)){
+      if(await uiConfirm(tr('fw_update_offer',fw.ver,FW_VER))) await flashNano(true);
+    }
   }catch(e){log(tr('conn_fail',e),'err');}
 }
 async function disconnect(){keepReading=false;try{await reader.cancel();reader.releaseLock();}catch(e){}try{writer.releaseLock();}catch(e){}try{await port.close();}catch(e){}port=writer=reader=null;fwOk=false;fwChips=null;setOnline(false);updateOps();log(tr('disconnected'));}
@@ -2249,8 +2255,8 @@ async function stkWriteVerify(img){
   }
 }
 
-async function flashNano(){
-  if(fwOk && !(await uiConfirm(tr('flash_reok',FW_VER),true))) return;   // guard accidental re-flash of an already-good board
+async function flashNano(force){
+  if(!force && fwOk && !(await uiConfirm(tr('flash_reok',FW_VER),true))) return;   // guard accidental re-flash (skipped when called from the auto-update offer)
   const fileMode = location.protocol==='file:';   // on file:// fetch is blocked
   const embedded = anyEmbedded();                  // firmware baked into this page → no external file needed anywhere
 
@@ -2529,7 +2535,7 @@ function updateOps(){const ready=!!port&&fwOk, can=ready&&chipSupported();
 
 $('btnConnect').onclick=connect;$('btnDisconnect').onclick=disconnect;$('btnVolt').onclick=readVoltage;$('btnCal').onclick=calibrate;
 $('btnRead').onclick=readChip;$('btnBlank').onclick=blankCheck;$('btnSave').onclick=saveBin;
-$('btnVerify').onclick=verify;$('btnBurn').onclick=burn;$('btnSet').onclick=sendSettings;$('btnFlash').onclick=flashNano;
+$('btnVerify').onclick=verify;$('btnBurn').onclick=burn;$('btnSet').onclick=sendSettings;$('btnFlash').onclick=()=>flashNano();
 $('btnHexView').onclick=()=>{verifySplit=!verifySplit;$('btnHexView').textContent=verifySplit?'⇄ single view':'⇄ split view';if(verifyActive)showVerify();};
 async function applyChipUI(){ $('chipPill').textContent=$('chipSel').selectedOptions[0].textContent;   // sync the panel pill
   $('hiFwrap').style.display=nib()?'inline-flex':'none';   // BDI nibble option is РТ4-only
