@@ -102,12 +102,19 @@
       <span class="stat"><span id="led" class="led"></span><span id="connState" class="label">OFFLINE</span></span>
       <span class="pill" id="fw">fw: —</span>
       <button id="btnFlash" class="danger" data-i18n="b_flash">[ ⟳ FLASH NANO ]</button>
+      <span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px">
+        <span class="label">CHIP</span>
+        <select id="chipSel">
+          <option value="rt4" selected>КР556РТ4 · 256×4</option>
+          <option value="re3">К155РЕ3 · 32×8</option>
+        </select>
+      </span>
     </div>
     <div class="hint" data-i18n="hint_conn">Chrome/Edge, открыть локально (file://). Закрой Arduino IDE / DidUino перед CONNECT.</div>
   </div>
 
   <div class="panel"><h2 data-i18n="h_ops">Операции</h2>
-    <div class="row" style="align-items:flex-start;padding-bottom:20px">
+    <div class="row" style="align-items:flex-start;padding-bottom:46px">
       <input type="file" id="file" accept=".bin,.rom" style="display:none">
       <span style="position:relative;display:inline-flex">
         <button id="btnFile">[ LOAD .BIN ]</button>
@@ -117,7 +124,7 @@
       <button id="btnBlank" disabled>[ BLANK? ]</button>
       <span style="display:inline-flex;flex-direction:column;align-items:flex-start;gap:12px">
         <button id="btnSave" disabled>[ SAVE .BIN ]</button>
-        <label style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--green-dim);cursor:pointer"><input type="checkbox" id="hiF"> <span data-i18n="hiF_lbl">старший нибл = F</span></label>
+        <label id="hiFwrap" style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--green-dim);cursor:pointer"><input type="checkbox" id="hiF"> <span data-i18n="hiF_lbl">старший нибл = F</span></label>
       </span>
       <button id="btnVerify" disabled>[ VERIFY ]</button>
       <button id="btnBurn" class="danger" disabled>[ BURN ▲ ]</button>
@@ -130,7 +137,7 @@
   <div class="panel"><h2>HEX <span id="hexsrc" class="label"></span><button id="btnHexView" disabled style="font-size:11px;padding:3px 8px;margin-left:10px;letter-spacing:0">⇄ single view</button></h2><div id="hexsum" style="white-space:pre;font-family:'Consolas','Courier New',monospace;font-size:13px;line-height:1.45;color:var(--amber);margin:3px 0"></div><div class="hint" id="hexnote"></div><div id="hex">— нет данных —</div></div>
   <details class="panel" id="chipPanel"><summary data-i18n="h_chip">Чип · напряжение · параметры прожига</summary>
     <div class="row" style="margin-bottom:12px;gap:26px;align-items:flex-end">
-      <label class="fld"><span data-i18n="l_chip">микросхема</span><span class="pill">КР556РТ4 · 256×4</span></label>
+      <label class="fld"><span data-i18n="l_chip">микросхема</span><span class="pill" id="chipPill">КР556РТ4 · 256×4</span></label>
       <label class="fld">Vpp<div class="big"><span id="volt">--.--</span> V</div></label>
       <label class="fld"><span data-i18n="l_level">уровень p0–p7</span>
         <select id="level">
@@ -1954,7 +1961,7 @@ const MSG={
   flash_detect:'── определение бутлоадера ──',flash_try:b=>'• пробую '+b+' бод…',flash_reset:'  reset платы (DTR/RTS)…',flash_syncN:(i,t)=>'  sync-запрос '+i+'/'+t+' (GET_SYNC 0x30)…',flash_syncresp:r=>'  ответ: '+r,flash_synced:b=>'✓ бутлоадер отвечает @ '+b+' бод (STK500v1)',flash_nosyncbaud:b=>'  нет sync @ '+b+' бод',flash_nosync:'✗ бутлоадер не отвечает на 115200/57600/19200 — проверь плату/кабель, закрой Arduino IDE',
   flash_resync:'  .hex получен — повторный sync перед записью…',flash_enter:'вход в режим программирования…',flash_prog:(a,n)=>'запись flash '+a+'/'+n+' байт',flash_verf:(a,n)=>'сверка flash '+a+'/'+n+' байт',flash_verr:a=>'✗ сверка не сошлась @ 0x'+a,flash_leave:'выход из режима программирования, перезапуск…',
   flash_ok:'*** ПРОШИВКА УСПЕШНА ***',flash_fail:e=>'*** ОШИБКА ПРОШИВКИ: '+e+' ***',flash_reboot:'перезапуск платы, чтение баннера…',
-  file_none:'файл: —',fpill:(nm,n)=>'файл: '+nm+' ('+n+'б)',hex_none:'— нет данных —',src_file:'· показан ФАЙЛ',src_chip:'· показан ЧИП',src_split:'· ФАЙЛ ↔ ЧИП',crc_note:'РТ4 = 4 бита/ячейку: «4 бита» — данные на чипе (сверяй с ним), «сырой файл» — все 8 бит файла (как CRC сторонней утилиты по байтам)',crc_note_v:'сверка по 4 битам данных (старший нибл на чипе отсутствует)',l_raw:'сырой файл',l_f4:'файл (4 бита)',l_chip2:'чип',tt_mism:(a,w,g)=>'@0x'+a+': ждали 0x'+w+', на чипе 0x'+g},
+  file_none:'файл: —',fpill:(nm,n)=>'файл: '+nm+' ('+n+'б)',hex_none:'— нет данных —',src_file:'· показан ФАЙЛ',src_chip:'· показан ЧИП',src_split:'· ФАЙЛ ↔ ЧИП',crc_note:'РТ4 = 4 бита/ячейку: «4 бита» — данные на чипе (сверяй с ним), «сырой файл» — все 8 бит файла (как CRC сторонней утилиты по байтам)',crc_note_v:'сверка по 4 битам данных (старший нибл на чипе отсутствует)',l_raw:'сырой файл',l_f4:'файл (4 бита)',l_chip2:'чип',l_crc:'файл',tt_mism:(a,w,g)=>'@0x'+a+': ждали 0x'+w+', на чипе 0x'+g},
  en:{port_open:'port open, resetting Arduino…',fw_bad:'⚠ banner is not Diduino_Nichrome — flash Diduino_Nichrome.ino',fw_need:'need Diduino_Nichrome.ino',fw_old:(v,min)=>'⚠ Nichrome firmware v'+v+' is too old — need ≥ '+min+'. Burn disabled.',fw_block:(min)=>'burn blocked: need Nichrome firmware ≥ '+min,connected:'connected',
   conn_fail:e=>'connect failed: '+e,disconnected:'disconnected',no_ws:'Web Serial unavailable — use Chrome/Edge',
   volt:v=>'Vpp = '+v+' V',no_v:'no reply to v',settings:p=>`settings: pulses=${p.imp} t=${p.len}us duty=${p.duty}% soak=${p.soak} p${p.lvl}`,
@@ -1977,10 +1984,12 @@ const MSG={
   flash_detect:'── bootloader detection ──',flash_try:b=>'• trying '+b+' baud…',flash_reset:'  resetting board (DTR/RTS)…',flash_syncN:(i,t)=>'  sync request '+i+'/'+t+' (GET_SYNC 0x30)…',flash_syncresp:r=>'  reply: '+r,flash_synced:b=>'✓ bootloader responds @ '+b+' baud (STK500v1)',flash_nosyncbaud:b=>'  no sync @ '+b+' baud',flash_nosync:'✗ no bootloader response at 115200/57600/19200 — check board/cable, close Arduino IDE',
   flash_resync:'  .hex fetched — re-syncing before write…',flash_enter:'entering programming mode…',flash_prog:(a,n)=>'writing flash '+a+'/'+n+' bytes',flash_verf:(a,n)=>'verifying flash '+a+'/'+n+' bytes',flash_verr:a=>'✗ verify mismatch @ 0x'+a,flash_leave:'leaving programming mode, restarting…',
   flash_ok:'*** FLASH SUCCESS ***',flash_fail:e=>'*** FLASH FAILED: '+e+' ***',flash_reboot:'rebooting board, reading banner…',
-  file_none:'file: —',fpill:(nm,n)=>'file: '+nm+' ('+n+' B)',hex_none:'— no data —',src_file:'· showing FILE',src_chip:'· showing CHIP',src_split:'· FILE ↔ CHIP',crc_note:'RT4 = 4 bits/cell: «4-bit» is the data on the chip (compare with it), «raw file» is all 8 bits of the file (what an external tool CRCs over bytes)',crc_note_v:'compared over the 4-bit data (high nibble is not present on the chip)',l_raw:'raw file',l_f4:'file (4-bit)',l_chip2:'chip',tt_mism:(a,w,g)=>'@0x'+a+': expected 0x'+w+', chip 0x'+g}
+  file_none:'file: —',fpill:(nm,n)=>'file: '+nm+' ('+n+' B)',hex_none:'— no data —',src_file:'· showing FILE',src_chip:'· showing CHIP',src_split:'· FILE ↔ CHIP',crc_note:'RT4 = 4 bits/cell: «4-bit» is the data on the chip (compare with it), «raw file» is all 8 bits of the file (what an external tool CRCs over bytes)',crc_note_v:'compared over the 4-bit data (high nibble is not present on the chip)',l_raw:'raw file',l_f4:'file (4-bit)',l_chip2:'chip',l_crc:'file',tt_mism:(a,w,g)=>'@0x'+a+': expected 0x'+w+', chip 0x'+g}
 };
 function tr(k,...a){let d=MSG[lang]||MSG.ru,m=d[k];if(m===undefined)m=MSG.ru[k];if(m===undefined)return k;return typeof m==='function'?m(...a):m;}
-const RT4={cmd:'h',size:256,bits:4};   // только КР556РТ4
+const RT4={cmd:'h',size:256,bits:4};   // КР556РТ4 · 256×4 (младший нибл в байте)
+const RE3={cmd:'g',size:32 ,bits:8};   // К155РЕ3 · 32×8 (полный байт); прожиг ~11–15В, 0→1; команда выбора в прошивке — TBD
+const CHIPS={rt4:RT4,re3:RE3};
 let port=null,writer=null,reader=null,keepReading=false,rxq=[];
 let fwOk=false;                           // firmware confirmed = Nichrome AND >= MIN_FW
 const MIN_FW='0.6.0';                      // require the calibrated-voltmeter firmware (ratiometric Vpp + EEPROM cal)
@@ -1993,8 +2002,9 @@ function vge(a,b){const p=String(a).split('.').map(Number),q=String(b).split('.'
 let loadedName='',hexShown=null,hexMark=false;
 let verifySplit=true,verifyActive=false;    // verify view: split (file|chip) vs single grid; whether a verify result is on screen — split is the default
 let fileData=null,chipData=null;
-const chip=()=>RT4;
-const mask=v=>(v&0x0F);
+const chip=()=>CHIPS[($('chipSel')||{}).value]||RT4;   // selector-driven; defaults to РТ4
+const mask=v=>v&(chip().bits===8?0xFF:0x0F);            // full byte for РЕ3, low nibble for РТ4
+const nib=()=>chip().bits===4;                          // РТ4 stores a 4-bit nibble/cell (BDI high-nibble + dual CRC); РЕ3 is a full byte
 function crc32(src,n,low){let c=~0>>>0;for(let i=0;i<n;i++){c^=(src[i]||0)&(low?0x0F:0xFF);for(let k=0;k<8;k++)c=(c>>>1)^(0xEDB88320&-(c&1));}return (~c)>>>0;}
 const hx8=v=>'0x'+(v>>>0).toString(16).toUpperCase().padStart(8,'0');
 function crcLine(k,v){return (tr(k)+':').padEnd(15)+v;}   // aligned label for the stacked CRC block
@@ -2343,22 +2353,34 @@ function showVerify(){
   for(let i=0;i<n;i++) if(chipData[i]!==mask(fileData[i]||0)){m++;if(f<0)f=i;}
   if(verifySplit) renderHexSplit(); else renderHex(chipData,true);
   $('hexsrc').textContent=(verifySplit?tr('src_split'):tr('src_chip'))+' · CRC-32';
-  $('hexsum').textContent=crcLine('l_raw',hx8(crc32(fileData,n,false)))+'\n'+crcLine('l_f4',hx8(crc32(fileData,n,true)))+'\n'+crcLine('l_chip2',hx8(crc32(chipData,n,true)))+(m===0?'  ✓':'  ✗');
-  $('hexnote').textContent=tr('crc_note_v');
+  if(nib()) $('hexsum').textContent=crcLine('l_raw',hx8(crc32(fileData,n,false)))+'\n'+crcLine('l_f4',hx8(crc32(fileData,n,true)))+'\n'+crcLine('l_chip2',hx8(crc32(chipData,n,true)))+(m===0?'  ✓':'  ✗');
+  else      $('hexsum').textContent=crcLine('l_crc',hx8(crc32(fileData,n,false)))+'\n'+crcLine('l_chip2',hx8(crc32(chipData,n,false)))+(m===0?'  ✓':'  ✗');
+  $('hexnote').textContent=nib()?tr('crc_note_v'):'';   // the 4-bit verify note is РТ4-only
   return {m,f,n};
 }
 // side-by-side verify grid: FILE (loaded .bin) on the left, CHIP (read from РТ4) on the right; mismatches red in both
 function renderHexSplit(){
-  const n=chip().size, W=chip().bits===8?2:1, colw=16*(W+1);
+  const n=chip().size, W=nib()?1:2, colw=16*(W+1);
   const cell=(v,mm)=>`<span class="${mm?'hm':(v?'hn':'hz')}">${v.toString(16).toUpperCase().padStart(W,'0')}</span>`;
+  const tip=i=>` title="${tr('tt_mism',i.toString(16).toUpperCase().padStart(2,'0'),mask(fileData[i]||0).toString(16).toUpperCase(),mask(chipData[i]!==undefined?chipData[i]:0).toString(16).toUpperCase())}"`;
   let cols='';for(let c=0;c<16;c++)cols+=c.toString(16).toUpperCase().padStart(W,'0')+' ';
-  let o=`<span class="hc">     ${'FILE'.padEnd(colw)}│ CHIP</span>\n`;
-  o+=`<span class="hc">     ${cols}│ ${cols}</span>\n`;
-  for(let r=0;r<n;r+=16){let lf='',rt='';
-    for(let c=0;c<16&&r+c<n;c++){const i=r+c,fv=mask(fileData[i]||0),cv=mask(chipData[i]!==undefined?chipData[i]:0),mm=fv!==cv;
-      const ttl=mm?` title="${tr('tt_mism',i.toString(16).toUpperCase().padStart(2,'0'),fv.toString(16).toUpperCase(),cv.toString(16).toUpperCase())}"`:'';
-      lf+=cell(fv,mm).replace('<span',`<span${ttl}`)+' '; rt+=cell(cv,mm).replace('<span',`<span${ttl}`)+' ';}
-    o+=`<span class="ha">${r.toString(16).toUpperCase().padStart(3,'0')}:</span> ${lf}│ ${rt}\n`;}
+  let o;
+  if(nib()){   // РТ4: side-by-side FILE | CHIP (narrow 4-bit cells fit)
+    o=`<span class="hc">     ${'FILE'.padEnd(colw)}│ CHIP</span>\n<span class="hc">     ${cols}│ ${cols}</span>\n`;
+    for(let r=0;r<n;r+=16){let lf='',rt='';
+      for(let c=0;c<16&&r+c<n;c++){const i=r+c,fv=mask(fileData[i]||0),cv=mask(chipData[i]!==undefined?chipData[i]:0),mm=fv!==cv,ttl=mm?tip(i):'';
+        lf+=cell(fv,mm).replace('<span',`<span${ttl}`)+' '; rt+=cell(cv,mm).replace('<span',`<span${ttl}`)+' ';}
+      o+=`<span class="ha">${r.toString(16).toUpperCase().padStart(3,'0')}:</span> ${lf}│ ${rt}\n`;}
+  } else {     // РЕ3: stacked FILE above CHIP (8-bit cells are wide → vertical avoids horizontal overflow)
+    const block=(label,getv)=>{let s=`<span class="hc">     ${label}</span>\n<span class="hc">     ${cols}</span>\n`;   // 5-space indent → label starts over the "00" data column (aligned with the address width)
+      for(let r=0;r<n;r+=16){let row='';
+        for(let c=0;c<16&&r+c<n;c++){const i=r+c,mm=mask(fileData[i]||0)!==mask(chipData[i]!==undefined?chipData[i]:0),ttl=mm?tip(i):'';
+          row+=cell(getv(i),mm).replace('<span',`<span${ttl}`)+' ';}
+        s+=`<span class="ha">${r.toString(16).toUpperCase().padStart(3,'0')}:</span> ${row}\n`;}
+      return s;};
+    const rule=`<span class="hc">${'─'.repeat(5+colw)}</span>\n`;   // horizontal divider between the stacked FILE / CHIP blocks (РЕ3 analog of РТ4's vertical │)
+    o=block('FILE',i=>mask(fileData[i]||0))+rule+block('CHIP',i=>mask(chipData[i]!==undefined?chipData[i]:0));
+  }
   $('hex').innerHTML=o;
 }
 async function verify(){if(!fileData){log(tr('need_bin'),'warn');return;}const d=await readChip();if(!d)return;
@@ -2366,11 +2388,11 @@ async function verify(){if(!fileData){log(tr('need_bin'),'warn');return;}const d
   const {m,f,n}=showVerify();
   log(m===0?tr('verify_ok',n):tr('verify_bad',n-m,n,m,f.toString(16).toUpperCase()),m===0?'ok':'err');}
 function saveBin(){if(!chipData){log(tr('nothing_save'),'warn');return;}
-  const hiF=$('hiF')&&$('hiF').checked;
+  const hiF=nib()&&$('hiF')&&$('hiF').checked;   // BDI high-nibble convention is РТ4-only
   const out=new Uint8Array(chipData.length);
-  for(let i=0;i<chipData.length;i++) out[i]=(chipData[i]&0x0F)|(hiF?0xF0:0x00);   // optional high nibble F = BDI file convention (data unchanged)
+  for(let i=0;i<chipData.length;i++) out[i]=nib()?((chipData[i]&0x0F)|(hiF?0xF0:0x00)):(chipData[i]&0xFF);   // РТ4: nibble (+optional F); РЕ3: full byte
   const blob=new Blob([out],{type:'application/octet-stream'});const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);a.download='RT4_dump.bin';a.click();log(tr('saved',out.length),'ok');}
+  a.href=URL.createObjectURL(blob);a.download=(nib()?'RT4':'RE3')+'_dump.bin';a.click();log(tr('saved',out.length),'ok');}
 
 async function burn(){
   if(!fileData){log(tr('need_bin'),'warn');return;}
@@ -2396,7 +2418,7 @@ async function burn(){
   if(chipCrc!==myCrc){ await send('N\n');
     log(tr('crc_bad',hx(chipCrc),hx(myCrc)),'err');
     $('barfill').style.width='0'; return; }
-  log(tr('crc_ok',hx8(crc32(buf,n,true))),'ok');   // show the 4-bit (data) CRC, consistent with the HEX panel and the chip
+  log(tr('crc_ok',hx8(crc32(buf,n,nib()))),'ok');   // data CRC (nibble for РТ4, full byte for РЕ3), consistent with the HEX panel and the chip
   await send('Y'+myCrc.toString(16).toUpperCase().padStart(8,'0')+'\n');   // #9: send GO + expected CRC-32; firmware refuses to burn unless it matches
   $('barfill').style.width='0'; setBL(tr('burn_wait'));
   const res=await readBurnResult(180000);     // moves the bar from PROG/VERF markers and logs every line
@@ -2417,9 +2439,12 @@ function renderHex(src,mark){if(!src)src=chipData||fileData;hexShown=src;hexMark
   if(!src){$('hexsrc').textContent='';$('hex').textContent=tr('hex_none');$('hexsum').textContent='';$('hexnote').textContent='';return;}
   $('hexsrc').textContent=((src===fileData)?tr('src_file'):((src===chipData)?tr('src_chip'):''))+' · CRC-32';
   const n=chip().size;let o='';
-  const craw=crc32(src,n,false), c4=crc32(src,n,true);   // 4-bit (data) CRC is comparable to a chip read; raw includes the unused high nibble
-  if(src===fileData){ $('hexsum').textContent=crcLine('l_raw',hx8(craw))+'\n'+crcLine('l_f4',hx8(c4)); $('hexnote').textContent=(craw!==c4)?tr('crc_note'):''; }
-  else { $('hexsum').textContent=crcLine('l_chip2',hx8(c4)); $('hexnote').textContent=''; }
+  const craw=crc32(src,n,false), cdata=crc32(src,n,nib());   // data CRC: nibble for РТ4, full byte for РЕ3
+  if(src===fileData){
+    if(nib()){ $('hexsum').textContent=crcLine('l_raw',hx8(craw))+'\n'+crcLine('l_f4',hx8(cdata)); $('hexnote').textContent=(craw!==cdata)?tr('crc_note'):''; }
+    else { $('hexsum').textContent=crcLine('l_crc',hx8(craw)); $('hexnote').textContent=''; }   // РЕ3: single full-byte CRC
+  }
+  else { $('hexsum').textContent=crcLine('l_chip2',hx8(cdata)); $('hexnote').textContent=''; }
   let hd='     ';for(let c=0;c<16;c++)hd+=c.toString(16).toUpperCase().padStart(chip().bits===8?2:1,'0')+' ';
   o+=`<span class="hc">${hd}</span>\n`;
   for(let r=0;r<n;r+=16){o+=`<span class="ha">${r.toString(16).toUpperCase().padStart(3,'0')}:</span> `;
@@ -2439,6 +2464,10 @@ $('btnConnect').onclick=connect;$('btnDisconnect').onclick=disconnect;$('btnVolt
 $('btnRead').onclick=readChip;$('btnBlank').onclick=blankCheck;$('btnSave').onclick=saveBin;
 $('btnVerify').onclick=verify;$('btnBurn').onclick=burn;$('btnSet').onclick=sendSettings;$('btnFlash').onclick=flashNano;
 $('btnHexView').onclick=()=>{verifySplit=!verifySplit;$('btnHexView').textContent=verifySplit?'⇄ single view':'⇄ split view';if(verifyActive)showVerify();};
+function applyChipUI(){ $('chipPill').textContent=$('chipSel').selectedOptions[0].textContent;   // sync the panel pill
+  $('hiFwrap').style.display=nib()?'inline-flex':'none';   // BDI nibble option is РТ4-only
+  if(verifyActive)showVerify(); else renderHex(hexShown,hexMark); }   // re-render HEX/CRC in the new chip's width
+$('chipSel').onchange=applyChipUI;
 $('btnFile').onclick=()=>{$('file').value='';$('file').click();};$('file').onchange=e=>{if(e.target.files[0])loadFile(e.target.files[0]);};
 $('lang').onclick=()=>setLang(lang==='ru'?'en':'ru');setLang('ru');
 log(tr('ready'),'ok');
