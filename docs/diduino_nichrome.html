@@ -1997,7 +1997,7 @@ const MSG={
   burn_send:n=>'BURN: отправляю '+n+' байт на плату…',crc_bad:(c,m)=>`CRC-32 НЕ СОВПАЛА: плата=${c} ≠ файл=${m} → ОТМЕНА (ошибка передачи)`,
   crc_ok:m=>`✓ CRC-32 (4 бита) совпала (${m}) — передача без ошибок`,burn_ok:'*** ПРОЖИГ УСПЕШЕН (сверка на плате) ***',burn_err:'*** ПРОЖИГ С ОШИБКАМИ — см. лог ***',
   burn_prog:(a,n)=>`прожиг ${a}/${n}…`,burn_verf:(a,n)=>`сверка ${a}/${n}…`,burn_wait:'жду ответа платы…',
-  loaded:(nm,n)=>'загружен '+nm+', '+n+' б',short_file:n=>'⚠ файл короче '+n,ready:'готов. CONNECT → операции.',proto:'протокол: v · p<n> · I/L/D · R · B · s',
+  loaded:(nm,n)=>'загружен '+nm+', '+n+' б',short_file:n=>'⚠ файл короче '+n,chip_suggest:(n,sug,cur)=>'Файл '+n+' б — похоже на '+sug+', а выбран '+cur+'. Переключить на '+sug+'? (Отмена — оставить '+cur+' как есть)',ready:'готов. CONNECT → операции.',proto:'протокол: v · p<n> · I/L/D · R · B · s',
   fw_press_flash:v=>'⛔ операции заблокированы. Нажми [ ⟳ FLASH NANO ], чтобы обновить прошивку платы до Diduino_Nichrome v'+v+'.',
   flash_confirm:(cur,nw)=>'Перепрошить плату? На плате Nichrome v'+cur+' → будет залита v'+nw+'.',
   fw_update_offer:(cur,nw)=>'На плате прошивка Nichrome v'+cur+'. Доступна v'+nw+' (мультичип, поддержка К155РЕ3). Обновить сейчас?',
@@ -2021,7 +2021,7 @@ const MSG={
   burn_send:n=>'BURN: sending '+n+' bytes to board…',crc_bad:(c,m)=>`CRC-32 MISMATCH: board=${c} ≠ file=${m} → ABORTED (transfer error)`,
   crc_ok:m=>`✓ CRC-32 (4-bit) match (${m}) — transfer OK`,burn_ok:'*** BURN SUCCESS (verified on board) ***',burn_err:'*** BURN HAD ERRORS — see log ***',
   burn_prog:(a,n)=>`programming ${a}/${n}…`,burn_verf:(a,n)=>`verifying ${a}/${n}…`,burn_wait:'waiting for board…',
-  loaded:(nm,n)=>'loaded '+nm+', '+n+' B',short_file:n=>'⚠ file shorter than '+n,ready:'ready. CONNECT → operations.',proto:'protocol: v · p<n> · I/L/D · R · B · s',
+  loaded:(nm,n)=>'loaded '+nm+', '+n+' B',short_file:n=>'⚠ file shorter than '+n,chip_suggest:(n,sug,cur)=>'File is '+n+' B — looks like '+sug+', but '+cur+' is selected. Switch to '+sug+'? (Cancel — keep '+cur+' as-is)',ready:'ready. CONNECT → operations.',proto:'protocol: v · p<n> · I/L/D · R · B · s',
   fw_press_flash:v=>'⛔ operations blocked. Press [ ⟳ FLASH NANO ] to update the board firmware to Diduino_Nichrome v'+v+'.',
   flash_confirm:(cur,nw)=>'Re-flash the board? Board has Nichrome v'+cur+' → v'+nw+' will be written.',
   fw_update_offer:(cur,nw)=>'Board has Nichrome v'+cur+'. v'+nw+' is available (multi-chip, adds К155РЕ3). Update now?',
@@ -2504,8 +2504,13 @@ async function burn(){
   await readChip();
 }
 
-function loadFile(f){const r=new FileReader();r.onload=()=>{fileData=new Uint8Array(r.result);
+function loadFile(f){const r=new FileReader();r.onload=async()=>{fileData=new Uint8Array(r.result);
   loadedName=f.name;setFileName();log(tr('loaded',f.name,fileData.length));
+  // soft suggestion (no hard logic): if the file size matches the OTHER chip, offer to switch — or keep as-is and load anyway
+  const other=nib()?RE3:RT4, fl=fileData.length;
+  if(fl===other.size && fl!==chip().size && await uiConfirm(tr('chip_suggest',fl,other.name,chip().name))){
+    $('chipSel').value=(other===RE3)?'re3':'rt4'; await applyChipUI();
+  }
   if(fileData.length<chip().size)log(tr('short_file',chip().size),'warn');setVerifyView(false);renderHex(fileData);updateOps();};r.readAsArrayBuffer(f);}
 function setFileName(){$('fileName').textContent=loadedName?tr('fpill',loadedName,(fileData?fileData.length:0)):tr('file_none');}
 function renderHex(src,mark){if(!src)src=chipData||fileData;hexShown=src;hexMark=mark;
