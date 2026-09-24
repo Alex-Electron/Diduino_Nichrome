@@ -20,6 +20,10 @@ This is a continuation of the open **Diduino** project. The hardware is unchange
   <a href="https://alex-electron.github.io/Diduino_Nichrome/diduino_nichrome.html"><img src="img/launch.png" alt="Launch the Diduino Nichrome programmer" height="54"></a>
 </p>
 
+If the programmer saved a chip or two for you, it would be really nice of you to buy me a cup of coffee:
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/G2F222TXLI) [![DonationAlerts](https://img.shields.io/badge/Donate-DonationAlerts-fb5b2d?style=for-the-badge&logo=donationalerts&logoColor=white)](https://www.donationalerts.com/r/alex_electron)
+
 ---
 
 ## Credits — the original project

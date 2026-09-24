@@ -20,6 +20,10 @@
   <a href="https://alex-electron.github.io/Diduino_Nichrome/diduino_nichrome.html"><img src="img/launch.png" alt="Открыть прошивальщик Diduino Nichrome" height="54"></a>
 </p>
 
+Если программатор сберёг вам пару микросхем, будет очень приятно, если вы угостите меня чашечкой кофе:
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/G2F222TXLI) [![DonationAlerts](https://img.shields.io/badge/Donate-DonationAlerts-fb5b2d?style=for-the-badge&logo=donationalerts&logoColor=white)](https://www.donationalerts.com/r/alex_electron)
+
 ---
 
 ## Авторы — оригинальный проект

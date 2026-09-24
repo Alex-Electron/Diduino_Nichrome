@@ -85,13 +85,22 @@
     border:1px solid var(--green-deep);border-radius:4px;padding:8px 10px;margin-bottom:14px;text-shadow:0 0 4px rgba(0,255,65,.5)}
   .modal-input:focus{outline:none;border-color:var(--green);box-shadow:0 0 8px rgba(0,255,65,.3)}
   .modal-btns{display:flex;gap:10px;justify-content:flex-end}
+  /* Donations: self-drawn buttons, nothing is loaded from third parties until clicked */
+  .donate p{margin:0 0 10px;font-size:13px;color:#9fdcae}
+  .don-row{display:flex;flex-wrap:wrap;gap:10px}
+  .don-btn{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 16px;border-radius:4px;font:700 13px/1 var(--mono,monospace);letter-spacing:1px;text-decoration:none;color:#fff;text-shadow:none;transition:.12s}
+  .don-btn.kofi{background:#29abe0;border:1px solid #29abe0}
+  .don-btn.kofi:hover{background:#1f93c2;box-shadow:0 0 10px rgba(41,171,224,.5)}
+  .don-btn.da{background:#f57507;border:1px solid #f57507}
+  .don-btn.da:hover{background:#d96505;box-shadow:0 0 10px rgba(245,117,7,.5)}
+  @media (max-width:600px){.don-row .don-btn{flex:1 1 100%;justify-content:center;min-height:40px}}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
     <div>
-      <h1>DIDUINO NICHROME <span style="font-size:12px;color:var(--green-dim)">app&nbsp;v0.8.8</span><span class="cur">_</span></h1>
+      <h1>DIDUINO NICHROME <span style="font-size:12px;color:var(--green-dim)">app&nbsp;v0.8.9</span><span class="cur">_</span></h1>
       <div class="sub"><span data-i18n="sub">Web Serial · прошивка: Diduino_Nichrome.ino · КР556РТ4 (256×4)</span> · <a href="https://github.com/Alex-Electron/Diduino_Nichrome" target="_blank" rel="noopener" style="color:var(--green);text-decoration:underline;text-shadow:0 0 4px rgba(0,255,65,.45)">github.com/Alex-Electron/Diduino_Nichrome ↗</a></div>
     </div>
     <button id="lang" style="padding:6px 12px">EN</button>
@@ -163,6 +172,14 @@
   </details>
 
   <div class="panel"><h2 data-i18n="h_log">Лог</h2><div id="log"></div></div>
+
+  <div class="panel donate"><h2 data-i18n="don_title">Поддержать проект</h2>
+    <p data-i18n="don_text">Если программатор сберёг вам пару микросхем, будет очень приятно, если вы угостите меня чашечкой кофе:</p>
+    <div class="don-row">
+      <a class="don-btn kofi" href="https://ko-fi.com/G2F222TXLI" target="_blank" rel="noopener noreferrer">☕ Ko-fi</a>
+      <a class="don-btn da" href="https://www.donationalerts.com/r/alex_electron" target="_blank" rel="noopener noreferrer">♥ DonationAlerts</a>
+    </div>
+  </div>
 </div>
 
 <div id="modal" class="modal-overlay" hidden>
@@ -1981,8 +1998,8 @@ $('modal').addEventListener('mousedown',e=>{ if(e.target===$('modal')) modalClos
 
 let lang='ru';
 const I18N={
- ru:{sub:'Web Serial · прошивка: Diduino_Nichrome.ino · КР556РТ4 (256×4)',h_conn:'Соединение',h_chip:'Чип · напряжение · параметры прожига',h_ops:'Операции',h_log:'Лог',l_chip:'микросхема',l_level:'уровень p0–p7',l_imp:'Кол-во импульсов',l_len:'Время имп., мкс',l_duty:'Заполнение %',l_soak:'Soak имп.',hiF_lbl:'старший нибл = F',b_send:'[ SEND SETTINGS ]',b_flash:'[ ⟳ FLASH NANO ]',hint_conn:'Chrome/Edge, открыть локально (file://). Закрой Arduino IDE / DidUino перед CONNECT.',hint_chip:'Напряжение = уровень p0–p7. По умолчанию для РТ4: 1000 имп. / 40 мкс / 10%. BURN берёт эти значения.',hint_ops:'BURN: уровень Vpp p1, загрузи .bin, чип должен быть ЧИСТЫЙ.'},
- en:{sub:'Web Serial · firmware: Diduino_Nichrome.ino · КР556РТ4 (256×4)',h_conn:'Connection',h_chip:'Chip · voltage · burn parameters',h_ops:'Operations',h_log:'Log',l_chip:'chip',l_level:'level p0–p7',l_imp:'Pulses',l_len:'Pulse time, µs',l_duty:'Duty %',l_soak:'Soak pulses',hiF_lbl:'high nibble = F',b_send:'[ SEND SETTINGS ]',b_flash:'[ ⟳ FLASH NANO ]',hint_conn:'Chrome/Edge, open locally (file://). Close Arduino IDE / DidUino before CONNECT.',hint_chip:'Voltage = level p0–p7. RT4 defaults: 1000 pulses / 40 µs / 10%. BURN uses these values.',hint_ops:'BURN: Vpp level p1, load .bin, chip must be BLANK.'}
+ ru:{don_title:'Поддержать проект',don_text:'Если программатор сберёг вам пару микросхем, будет очень приятно, если вы угостите меня чашечкой кофе:',sub:'Web Serial · прошивка: Diduino_Nichrome.ino · КР556РТ4 (256×4)',h_conn:'Соединение',h_chip:'Чип · напряжение · параметры прожига',h_ops:'Операции',h_log:'Лог',l_chip:'микросхема',l_level:'уровень p0–p7',l_imp:'Кол-во импульсов',l_len:'Время имп., мкс',l_duty:'Заполнение %',l_soak:'Soak имп.',hiF_lbl:'старший нибл = F',b_send:'[ SEND SETTINGS ]',b_flash:'[ ⟳ FLASH NANO ]',hint_conn:'Chrome/Edge, открыть локально (file://). Закрой Arduino IDE / DidUino перед CONNECT.',hint_chip:'Напряжение = уровень p0–p7. По умолчанию для РТ4: 1000 имп. / 40 мкс / 10%. BURN берёт эти значения.',hint_ops:'BURN: уровень Vpp p1, загрузи .bin, чип должен быть ЧИСТЫЙ.'},
+ en:{don_title:'Support the project',don_text:'If the programmer saved a chip or two for you, it would be really nice of you to buy me a cup of coffee:',sub:'Web Serial · firmware: Diduino_Nichrome.ino · КР556РТ4 (256×4)',h_conn:'Connection',h_chip:'Chip · voltage · burn parameters',h_ops:'Operations',h_log:'Log',l_chip:'chip',l_level:'level p0–p7',l_imp:'Pulses',l_len:'Pulse time, µs',l_duty:'Duty %',l_soak:'Soak pulses',hiF_lbl:'high nibble = F',b_send:'[ SEND SETTINGS ]',b_flash:'[ ⟳ FLASH NANO ]',hint_conn:'Chrome/Edge, open locally (file://). Close Arduino IDE / DidUino before CONNECT.',hint_chip:'Voltage = level p0–p7. RT4 defaults: 1000 pulses / 40 µs / 10%. BURN uses these values.',hint_ops:'BURN: Vpp level p1, load .bin, chip must be BLANK.'}
 };
 function setLang(l){lang=l;document.querySelectorAll('[data-i18n]').forEach(e=>{const k=e.getAttribute('data-i18n');if(I18N[l][k]!==undefined)e.textContent=I18N[l][k];});$('lang').textContent=l==='ru'?'EN':'RU';document.documentElement.lang=l;setFileName();if(verifyActive)showVerify();else renderHex(hexShown,hexMark);}
 // log-message dictionary (firmware stays an English protocol; the app localises everything the user sees)
